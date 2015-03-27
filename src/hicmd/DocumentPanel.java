@@ -23,6 +23,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
@@ -86,6 +87,10 @@ class DocumentPanel extends JPanel {
         commandArea = new JTextArea();
         saveRunButton = new JButton();
 
+        JPanel top = new JPanel();
+        JPanel bottom = new JPanel();
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        
         fileLabel.setText(FILE_LABEL);
         fileLabel.setFont(DEF_FONT);
 
@@ -116,7 +121,8 @@ class DocumentPanel extends JPanel {
         saveRunButton.setText(SAVE_RUN_TEXT);
         saveRunButton.setFont(DEF_FONT);
 
-        setLayout(gridbag);
+        top.setLayout(gridbag);
+        bottom.setLayout(gridbag);
 
         gbc.gridx = 0;
         gbc.weightx = 1;
@@ -124,7 +130,7 @@ class DocumentPanel extends JPanel {
         gbc.gridy = 0;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(fileLabel, gbc);
+        top.add(fileLabel, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 1;
@@ -132,7 +138,7 @@ class DocumentPanel extends JPanel {
         gbc.gridy = 1;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(fileField, gbc);
+        top.add(fileField, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0;
@@ -140,7 +146,7 @@ class DocumentPanel extends JPanel {
         gbc.gridy = 1;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(showButton, gbc);
+        top.add(showButton, gbc);
 
         gbc.gridx = 2;
         gbc.weightx = 0;
@@ -148,7 +154,7 @@ class DocumentPanel extends JPanel {
         gbc.gridy = 1;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(openButton, gbc);
+        top.add(openButton, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 0;
@@ -156,7 +162,7 @@ class DocumentPanel extends JPanel {
         gbc.gridy = 2;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(documentLabel, gbc);
+        top.add(documentLabel, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 0;
@@ -167,37 +173,44 @@ class DocumentPanel extends JPanel {
         JPanel documentNoWrapPanel = new JPanel(new BorderLayout());
         documentNoWrapPanel.add(documentArea);
         JScrollPane documentScroll = new JScrollPane(documentNoWrapPanel);
-        add(documentScroll, gbc);
+        top.add(documentScroll, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 0;
         gbc.gridwidth = 1;
-        gbc.gridy = 4;
+        gbc.gridy = 0;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(commandLabel, gbc);
+        bottom.add(commandLabel, gbc);
 
         gbc.gridx = 0;
-        gbc.weightx = 0;
+        gbc.weightx = 1;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.gridy = 5;
-        gbc.weighty = 1;
+        gbc.gridy = 1;
+        gbc.weighty = 3;
         gbc.fill = GridBagConstraints.BOTH;
         JPanel commandNoWrapPanel = new JPanel(new BorderLayout());
         commandNoWrapPanel.add(commandArea);
         JScrollPane commandScroll = new JScrollPane(commandNoWrapPanel);
-        add(commandScroll, gbc);
+        bottom.add(commandScroll, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 0;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.gridy = 6;
+        gbc.gridy = 2;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
         buttonPanel.add(saveRunButton);
-        add(buttonPanel, gbc);
+        bottom.add(buttonPanel, gbc);
+        
+        split.setLeftComponent(top);
+        split.setRightComponent(bottom);
+        split.setDividerLocation(300);
+        
+        setLayout(new BorderLayout());
+        add(split, BorderLayout.CENTER);
     }
 
     private void addListeners() {

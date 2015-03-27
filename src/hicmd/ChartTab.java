@@ -1,7 +1,6 @@
 package hicmd;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
