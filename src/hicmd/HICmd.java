@@ -19,10 +19,10 @@ public class HICmd extends JFrame {
     JTabbedPane tabs;
     DocumentPanel documentPanel;
     
-    private String TITLE = "HICmd";
-    private String DOC_TITLE = "Document";
-    private Dimension WINDOW_SIZE = new Dimension(600, 600);
-    private Dimension MIN_WINDOW_SIZE = new Dimension(600, 600);
+    private final String TITLE = "HICmd";
+    private final String DOC_TITLE = "Document";
+    private final Dimension WINDOW_SIZE = new Dimension(800, 600);
+    private final Dimension MIN_WINDOW_SIZE = new Dimension(800, 600);
     
     public HICmd() {
         init();
@@ -31,7 +31,7 @@ public class HICmd extends JFrame {
     private void init() {
         gridbag = new GridBagLayout();
         gbc = new GridBagConstraints();
-        tabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
+        tabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
         documentPanel = new DocumentPanel(this);
         
         tabs.add(DOC_TITLE, documentPanel);

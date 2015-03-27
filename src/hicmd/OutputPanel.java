@@ -1,24 +1,22 @@
 package hicmd;
 
-import java.awt.FlowLayout;
+import hicmd.resultprocessor.FindEarliestResult;
+import hicmd.resultprocessor.HybridRewriteResult;
+import hicmd.resultprocessor.HybridSearchResult;
+import hicmd.resultprocessor.ModelCheckResult;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import javafx.embed.swing.JFXPanel;
-import javafx.scene.Scene;
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
+import java.util.ArrayList;
 import javafx.scene.chart.XYChart;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
@@ -27,23 +25,19 @@ import javax.swing.JTextArea;
  *
  * @author Gary
  */
-class OutputPanel extends JPanel {
+public class OutputPanel extends JSplitPane {
 
     HICmd parent;
     OutputPanel thisPanel;
     GridBagLayout gridbag;
     GridBagConstraints gbc;
-    String[][] data;
 
     File file;
     JLabel outputLabel;
-    JLabel errorLabel;
     JTextArea rawOutputArea;
-    JTextArea outputArea;
-    JTextArea errorArea;
-    JFXPanel chartJFXPanel;
-    JButton copyButton;
-    JButton closeButton;
+    JLabel closeButton;
+    JTabbedPane tabs;
+    ChartTab chart;
 
     private final int TAB_SIZE = 4;
     private String OUTPUT_LABEL = "Output";
@@ -64,42 +58,25 @@ class OutputPanel extends JPanel {
     private void init() {
         gridbag = new GridBagLayout();
         gbc = new GridBagConstraints();
-        data = null;
 
         outputLabel = new JLabel();
-        errorLabel = new JLabel();
         rawOutputArea = new JTextArea();
-        outputArea = new JTextArea();
-        errorArea = new JTextArea();
-        chartJFXPanel = new JFXPanel();
-        copyButton = new JButton();
-        closeButton = new JButton();
+        closeButton = new JLabel();
+        tabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
 
         outputLabel.setText(OUTPUT_LABEL);
         outputLabel.setFont(DEF_FONT);
-
-        errorLabel.setText(ERROR_LABEL);
-        errorLabel.setFont(DEF_FONT);
 
         rawOutputArea.setFont(MONO_FONT);
         rawOutputArea.setEditable(false);
         rawOutputArea.setTabSize(TAB_SIZE);
 
-        outputArea.setFont(MONO_FONT);
-        outputArea.setEditable(false);
-        outputArea.setTabSize(TAB_SIZE);
-
-        errorArea.setFont(MONO_FONT);
-        errorArea.setEditable(false);
-        errorArea.setTabSize(TAB_SIZE);
-
-        copyButton.setText(COPY_BUTTON);
-        copyButton.setFont(DEF_FONT);
-
         closeButton.setText(CLOSE_BUTTON);
         closeButton.setFont(DEF_FONT);
 
-        setLayout(gridbag);
+        JPanel top = new JPanel();
+        top.setLayout(gridbag);
+        top.setPreferredSize(new Dimension(500, 300));
 
         gbc.gridx = 0;
         gbc.weightx = 1;
@@ -107,7 +84,15 @@ class OutputPanel extends JPanel {
         gbc.gridy = 0;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(outputLabel, gbc);
+        top.add(outputLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.gridy = 0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        top.add(closeButton, gbc);
 
         gbc.gridx = 0;
         gbc.weightx = 1;
@@ -116,89 +101,136 @@ class OutputPanel extends JPanel {
         gbc.weighty = 2;
         gbc.fill = GridBagConstraints.BOTH;
         JScrollPane rawOutputScroll = new JScrollPane(rawOutputArea);
-        JScrollPane outputScroll = new JScrollPane(outputArea);
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.TOP);
         tabs.add("Raw", rawOutputScroll);
-        tabs.add("Processed", outputScroll);
-        tabs.add("Chart", chartJFXPanel);
-        add(tabs, gbc);
+        top.add(tabs, gbc);
 
-        gbc.gridx = 0;
-        gbc.weightx = 1;
-        gbc.gridwidth = 1;
-        gbc.gridy = 2;
-        gbc.weighty = 0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(errorLabel, gbc);
+        chart = new ChartTab("");
+        chart.run();
 
-        gbc.gridx = 0;
-        gbc.weightx = 1;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.gridy = 3;
-        gbc.weighty = 1;
-        gbc.fill = GridBagConstraints.BOTH;
-        JScrollPane errorScroll = new JScrollPane(errorArea);
-        add(errorScroll, gbc);
-
-        gbc.gridx = 0;
-        gbc.weightx = 0;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.gridy = 4;
-        gbc.weighty = 0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-        buttonPanel.add(copyButton);
-        buttonPanel.add(closeButton);
-        add(buttonPanel, gbc);
+        setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+        setLeftComponent(top);
+        setRightComponent(chart);
+        setOneTouchExpandable(true);
     }
 
     private void addListeners() {
-        copyButton.addActionListener(new ActionListener() {
+        closeButton.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                //copy to clipboard, use with excel etc...
-                Toolkit toolkit = Toolkit.getDefaultToolkit();
-                Clipboard clipboard = toolkit.getSystemClipboard();
-                StringSelection strSel = new StringSelection(outputArea.getText());
-                clipboard.setContents(strSel, null);
-            }
-        });
-
-        closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+            public void mouseReleased(MouseEvent e) {
                 parent.tabs.remove(thisPanel);
             }
         });
     }
 
-    public void createChart() {
-        final NumberAxis xAxis = new NumberAxis();
-        final NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Time");
-        yAxis.setLabel("Effort/Flow");
-        final LineChart<Number, Number> lineChart = new LineChart<>(xAxis, yAxis);
+    public void addResultProcessor(ResultProcessor processor) {
 
-        lineChart.setTitle("Output Chart");
-        lineChart.setCreateSymbols(false);
+        int i = 1;
+        ArrayList<HybridRewriteResult> hybridRewriteResults = processor.getHybridRewriteResults();
+        for (HybridRewriteResult res : hybridRewriteResults) {
 
-        //For every data column after {time, timestep}
-        for (int i = 2; i < data[0].length; i++) {
-            XYChart.Series series = new XYChart.Series();
-            series.setName("Series " + (i - 1));
-
-            for (String[] row : data) {
-                float time = Float.parseFloat(row[0]);
-                float effort = Float.parseFloat(row[i]);
-                series.getData().add(new XYChart.Data(time, effort));
+            //Create and add JPanel to display textual result
+            ResultsTab results = new ResultsTab(chart);
+            for (XYChart.Series series : convertResultToSeriesList(res.source, res.result)) {
+                results.addSeries(series);
             }
+            results.setText(res.toString());
 
-            lineChart.getData().add(series);
+            tabs.add(i + " hrew Result", results);
+            i++;
         }
 
-        Scene scene = new Scene(lineChart, 800, 600);
+        i = 1;
+        ArrayList<HybridSearchResult> hybridSearchResults = processor.getHybridSearchResults();
+        for (HybridSearchResult res : hybridSearchResults) {
 
-        chartJFXPanel.setScene(scene);
+            //Create and add JPanel to display textual result
+            ResultsTab results = new ResultsTab(chart);
+            for (XYChart.Series series : convertSolutionsToSeriesList(res.source, res.solutions)) {
+                results.addSeries(series);
+            }
+            results.setText(res.toString());
+
+            tabs.add(i + " hsearch Result", results);
+
+            i++;
+        }
+
+        i = 1;
+        ArrayList<FindEarliestResult> findEarliestResults = processor.getFindEarliestResults();
+        for (FindEarliestResult res : findEarliestResults) {
+
+            //Create and add JPanel to display textual result
+            ResultsTab results = new ResultsTab(chart);
+            for (XYChart.Series series : convertResultToSeriesList(res.source, res.result)) {
+                results.addSeries(series);
+            }
+            results.setText(res.toString());
+
+            tabs.add(i + " hfind Result", results);
+            i++;
+        }
+
+        i = 1;
+        ArrayList<ModelCheckResult> modelCheckResults = processor.getModelCheckResults();
+        for (ModelCheckResult res : modelCheckResults) {
+
+            //Create and add JPanel to display textual result
+            ResultsTab results = new ResultsTab(chart);
+            results.setText(res.toString());
+
+            tabs.add(i + " hmc Result", results);
+            i++;
+        }
+    }
+
+    private ArrayList<XYChart.Series> convertResultToSeriesList(String[] names, String[][] result) {
+        ArrayList<XYChart.Series> seriesList = new ArrayList<>();
+
+        int xpos = 0;
+        int ypos = 2;
+        for (String name : names) {
+
+            XYChart.Series series = new XYChart.Series();
+            series.setName(name);
+
+            for (String[] row : result) {
+                float x = Float.parseFloat(row[xpos]);
+                float y = Float.parseFloat(row[ypos]);
+                series.getData().add(new XYChart.Data(x, y));
+            }
+
+            seriesList.add(series);
+            ypos++;
+        }
+
+        return seriesList;
+    }
+
+    private ArrayList<XYChart.Series> convertSolutionsToSeriesList(String[] names, String[][][] solutions) {
+        ArrayList<XYChart.Series> seriesList = new ArrayList<>();
+
+        int sol = 1;
+        for (String[][] result : solutions) {
+            int xpos = 0;
+            int ypos = 2;
+            for (String name : names) {
+
+                XYChart.Series series = new XYChart.Series();
+                series.setName(name + " (s" + sol + ")");
+
+                for (String[] row : result) {
+                    float x = Float.parseFloat(row[xpos]);
+                    float y = Float.parseFloat(row[ypos]);
+                    series.getData().add(new XYChart.Data(x, y));
+                }
+
+                seriesList.add(series);
+                ypos++;
+            }
+
+            sol++;
+        }
+
+        return seriesList;
     }
 }

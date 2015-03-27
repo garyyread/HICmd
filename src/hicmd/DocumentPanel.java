@@ -17,7 +17,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javafx.application.Platform;
 import javax.swing.JButton;
 import javax.swing.JTextArea;
 import javax.swing.JFileChooser;
@@ -266,11 +265,14 @@ class DocumentPanel extends JPanel {
 
         String COMMAND_TEMPLATE
                 = "load hi-maude.maude ."
-                + NL + ""
                 + NL + "load " + file.getName() + " ."
-                + NL + ""
+                + NL + "---"
                 + NL + "---Place your commands below"
                 + NL + ""
+                + NL + ""
+                + NL + ""
+                + NL + "---Place your commands above"
+                + NL + "---"
                 + NL + "q .";
 
         File commandFile = new File(file.getParent() + "//" + file.getName().replace(".himaude", "") + "_HICmd" + ".himaude");
@@ -375,15 +377,13 @@ class ProgressThread extends Thread implements Runnable {
         tabs.setTitleAt(index, tabTitle);
     }
 }
-
+    
 class MyThread extends Thread implements Runnable {
-
+   
     private final File file;
     private final OutputPanel outPanel;
     private String result;
-    private String rawResult;
     private String error;
-    private String[][] data;
 
     private final String BEGIN = "cmd /c \"";
     private final String CD = " cd ";
@@ -400,16 +400,8 @@ class MyThread extends Thread implements Runnable {
         return result;
     }
 
-    public String getRawResult() {
-        return rawResult;
-    }
-
     public String getError() {
         return error;
-    }
-
-    public String[][] getData() {
-        return data;
     }
 
     @Override
@@ -440,18 +432,14 @@ class MyThread extends Thread implements Runnable {
             String sI = "";
             while ((sI = stdInput.readLine()) != null) {
                 result += sI + "\n";
-
                 outPanel.rawOutputArea.setText(result);
-
                 outPanel.rawOutputArea.setCaretPosition(outPanel.rawOutputArea.getDocument().getLength());
             }
 
+            // read error output from command line
             String sE = "";
             while ((sE = stdError.readLine()) != null) {
                 error += sE + "\n";
-                outPanel.errorArea.setText(error);
-
-                outPanel.errorArea.setCaretPosition(outPanel.errorArea.getDocument().getLength());
             }
 
             stdError.close();
@@ -465,54 +453,8 @@ class MyThread extends Thread implements Runnable {
                 Logger.getLogger(HICmd.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            //Keep copy of raw output
-            rawResult = result;
-
-            //Trim output for result data
-            String startStr = "result : \"";
-            String startStrAlt = "result\n" + "    : \"";
-            String startStrAlt2 = "result :\n" +"    \"";
-            int start = result.lastIndexOf(startStr);
-            int startAlt = result.lastIndexOf(startStrAlt);
-            int startAlt2 = result.lastIndexOf(startStrAlt2);
-            if (start > 0 || startAlt > 0 || startAlt2 > 0) {
-                if (start > 0) {
-                    result = result.substring(start);
-                    result = result.substring(startStr.length(), result.indexOf("\","));
-                } else if (startAlt > 0) {
-                    result = result.substring(startAlt);
-                    result = result.substring(startStrAlt.length(), result.indexOf("\","));
-                } else if (startAlt2 > 0) {
-                    result = result.substring(startAlt2);
-                    result = result.substring(startStrAlt2.length(), result.indexOf("\","));
-                }
-                result = result.replace("\\n", "\n");
-                result = result.replace(",", "\t");
-
-                //Put result string into an array for processing later...
-                String[] rows = result.split("\n");
-                data = new String[rows.length][];
-
-                int i = 0;
-                for (String row : rows) {
-                    data[i] = row.split("\t");
-                    i++;
-                }
-            } else {
-                result = "No results found." + "\n" + "Check the raw output for more information.";
-            }
-
-            outPanel.outputArea.setText(result);
-            outPanel.errorArea.setText(error);
-            outPanel.data = data;
-
-            //Create chart!
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    outPanel.createChart();
-                }
-            });
+            //Make output panel deal with it's output...
+            outPanel.addResultProcessor(new ResultProcessor(result));
 
         } catch (IOException ex) {
             Logger.getLogger(MyThread.class.getName()).log(Level.SEVERE, null, ex);
