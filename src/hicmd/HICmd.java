@@ -22,7 +22,7 @@ public class HICmd extends JFrame {
     private final String TITLE = "HICmd";
     private final String DOC_TITLE = "Document";
     private final Dimension WINDOW_SIZE = new Dimension(800, 600);
-    private final Dimension MIN_WINDOW_SIZE = new Dimension(800, 600);
+    private final Dimension MIN_WINDOW_SIZE = new Dimension(500, 500);
     
     public HICmd() {
         init();
