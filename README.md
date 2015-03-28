@@ -1,5 +1,5 @@
 # HICmd for HI-Maude
-	A tool to help empower users of HI-Maude with a GUI and textual/visual analysis.
+	A tool gives HI-Maude users a GUI with textual/visual analysis.
 	
 # Features
 	* Document editor.
