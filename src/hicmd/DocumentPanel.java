@@ -6,6 +6,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
@@ -92,38 +93,39 @@ class DocumentPanel extends JPanel {
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         
         fileLabel.setText(FILE_LABEL);
-        fileLabel.setFont(DEF_FONT);
+//        fileLabel.setFont(DEF_FONT);
 
-        fileField.setFont(DEF_FONT);
+//        fileField.setFont(DEF_FONT);
         fileField.setMinimumSize(new Dimension(fileField.getMinimumSize().width, 30));
         fileField.setPreferredSize(new Dimension(fileField.getMinimumSize().width, 30));
 
         openButton.setText(OPEN_TEXT);
-        openButton.setFont(DEF_FONT);
+//        openButton.setFont(DEF_FONT);
 
         showButton.setText(SHOW_TEXT);
-        showButton.setFont(DEF_FONT);
+//        showButton.setFont(DEF_FONT);
 
         documentLabel.setText(DOCUMENT_LABEL);
-        documentLabel.setFont(DEF_FONT);
+//        documentLabel.setFont(DEF_FONT);
 
         documentArea.setFont(MONO_FONT);
         documentArea.setEditable(true);
         documentArea.setTabSize(TAB_SIZE);
 
         commandLabel.setText(COMMAND_LABEL);
-        commandLabel.setFont(DEF_FONT);
+//        commandLabel.setFont(DEF_FONT);
 
         commandArea.setFont(MONO_FONT);
         commandArea.setEditable(true);
         commandArea.setTabSize(TAB_SIZE);
 
         saveRunButton.setText(SAVE_RUN_TEXT);
-        saveRunButton.setFont(DEF_FONT);
+//        saveRunButton.setFont(DEF_FONT);
 
         top.setLayout(gridbag);
         bottom.setLayout(gridbag);
 
+        gbc.insets = new Insets(2,2,2,2);
         gbc.gridx = 0;
         gbc.weightx = 1;
         gbc.gridwidth = 1;
@@ -208,6 +210,7 @@ class DocumentPanel extends JPanel {
         split.setLeftComponent(top);
         split.setRightComponent(bottom);
         split.setDividerLocation(300);
+        split.setOneTouchExpandable(true);
         
         setLayout(new BorderLayout());
         add(split, BorderLayout.CENTER);

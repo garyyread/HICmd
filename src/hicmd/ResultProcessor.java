@@ -8,25 +8,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * This class should be passed raw hi-maude output data and in return
- * this class produces arrays of output which contain readable output.
- * Output is processed using a combination of String replace an split,
- * which looks for specific words and is made to work with version 1.0
- * and may not work with future versions.
+ * This class should be passed raw hi-maude output data and in return this class
+ * produces arrays of output which contain readable output. Output is processed
+ * using a combination of String replace an split, which looks for specific
+ * words and is made to work with version 1.0 and may not work with future
+ * versions.
+ *
  * @author Gary
  */
 public class ResultProcessor {
-    
+
     private String raw;
     private ArrayList<HybridRewriteResult> hybridRewriteResults;
     private ArrayList<HybridSearchResult> hybridSearchResults;
     private ArrayList<FindEarliestResult> findEarliestResults;
     private ArrayList<ModelCheckResult> modelCheckResults;
-    
+
     public ResultProcessor(String result) throws IOException {
         //Prosperity
         raw = result;
-        
+
         //Remove specific white space's
         result = result.replace('\n', ' ').replace('\t', ' ').replaceAll("( )+", " ");
 
@@ -52,19 +53,19 @@ public class ResultProcessor {
             }
         }
     }
-    
+
     public ArrayList<HybridRewriteResult> getHybridRewriteResults() {
         return hybridRewriteResults;
     }
-    
+
     public ArrayList<HybridSearchResult> getHybridSearchResults() {
         return hybridSearchResults;
     }
-    
+
     public ArrayList<FindEarliestResult> getFindEarliestResults() {
         return findEarliestResults;
     }
-    
+
     public ArrayList<ModelCheckResult> getModelCheckResults() {
         return modelCheckResults;
     }
@@ -140,7 +141,12 @@ public class ResultProcessor {
         String startStr = "Result Bool : ";
         int start = raw.indexOf(startStr);
         int end = raw.length();
-        return raw.subSequence(start + startStr.length(), end).toString();
+        if (raw.subSequence(start + startStr.length(), end).toString().contains("true")) {
+            raw = "true";
+        } else {
+            raw = "false";
+        }
+        return raw;
     }
 
     private String getNumericalMethod(String raw) {
@@ -160,36 +166,52 @@ public class ResultProcessor {
         String endStr = ",result";
         int start = raw.indexOf(startStr);
         int end = raw.indexOf(endStr);
-        return raw.subSequence(start + startStr.length(), end).toString();
+        try {
+            raw = raw.subSequence(start + startStr.length(), end).toString();
+        } catch (StringIndexOutOfBoundsException ex) {
+            raw = "No Solution.";
+        }
+        return raw;
     }
 
     private String[][] getResult(String raw) {
-        String startStr = ",result : \"";
-        String endStr = "\",source";
+        String[][] data;
+        String startStr, endStr;
+        if (raw.contains("\",source")) {
+            startStr = ",result : \"";
+            endStr = "\"";
+        } else {
+            startStr = ",result : \"";
+            endStr = "\"";
+        }
+        
         int start = raw.indexOf(startStr);
+        raw = raw.substring(start + startStr.length());
+        
         int end = raw.indexOf(endStr);
-        raw = raw.subSequence(start + startStr.length(), end).toString();
+        raw = raw.subSequence(0, end).toString();
 
         raw = raw.replace("\\n", "\n");
         raw = raw.replace(",", "\t");
 
         //Put result string into an array for processing later...
         String[] rows = raw.split("\n");
-        String[][] data = new String[rows.length][];
+        data = new String[rows.length][];
 
         int i = 0;
         for (String row : rows) {
             data[i] = row.split("\t");
             i++;
         }
+        
         return data;
     }
 
     private String[][][] getSolutions(String raw) {
-        
+
         String[] rawSolutions = raw.split("Solution");
         String[][][] solutions = new String[rawSolutions.length - 1][][];
-        
+
         int count = 0;
         for (String s : rawSolutions) {
             if (s.contains(",result : \"")) {
@@ -197,17 +219,31 @@ public class ResultProcessor {
                 count++;
             }
         }
-        
+
         return solutions;
     }
 
     private String[] getSource(String raw) {
-        String startStr = ",source :(";
-        String endStr = "),time";
+        String[] res;
+        String startStr, endStr;
+        if (raw.contains("source :(")) {
+            startStr = "source :(";
+            endStr = "),";
+        } else {
+            startStr = "source : ";
+            endStr = ",";
+        }
         int start = raw.indexOf(startStr);
+        raw = raw.substring(start + startStr.length());
+        
         int end = raw.indexOf(endStr);
-        raw = raw.subSequence(start + startStr.length(), end).toString();
-        return raw.split(" ");
+        try {
+            raw = raw.subSequence(0, end).toString().trim();
+            res = raw.split(" ");
+        } catch (StringIndexOutOfBoundsException ex) {
+            res = new String[] {"No Solution."};
+        }
+        return res;
     }
 
     private String getInTime(String raw) {
