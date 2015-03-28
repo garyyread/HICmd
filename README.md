@@ -24,9 +24,18 @@
 		
 	3. Run HICmd!
 		> HICmd\dist\HICmd.jar
-		
+
+# TODO...
+* Editor syntax highlighting
+* Command builder
+* Tidy and comment
+* UI Improvemnts
+
 # See also
-<a href="http://folk.uio.no/mohamf/HI-Maude/">HI-Maude: The Rewriting-Logic-Based Tool for Modeling Interacting Hybrid Systems</a>
-<a href="http://heim.ifi.uio.no/peterol/RealTimeMaude/">The Real-Time Maude Tool</a>
-<a href="http://maude.cs.illinois.edu/w/index.php?title=The_Maude_System">The Maude System</a>
-<a href="http://en.wikipedia.org/wiki/Maude_system">Maude system (Wikipedia)</a>
+* <a href="http://folk.uio.no/mohamf/HI-Maude/">HI-Maude: The Rewriting-Logic-Based Tool for Modeling Interacting Hybrid Systems</a>
+
+* <a href="http://heim.ifi.uio.no/peterol/RealTimeMaude/">The Real-Time Maude Tool</a>
+
+* <a href="http://maude.cs.illinois.edu/w/index.php?title=The_Maude_System">The Maude System</a>
+
+* <a href="http://en.wikipedia.org/wiki/Maude_system">Maude system (Wikipedia)</a>
