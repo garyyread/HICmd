@@ -1,0 +1,1596 @@
+
+********************************************************************************
+********************************************************************************
+***      HI-Maude 
+***      The rewriting-logic-based tool for modeling object-oriented 
+***      interacting hybrid systems.
+***     
+***      Version: 1.5
+***
+***      Developed by Muhammad Fadlisyah
+***      Precise Modeling and Analysis Group
+***      University of Oslo, Norway
+***
+***      Last updated: 30 August 2011
+********************************************************************************
+********************************************************************************
+
+ load real-time-maude.maude
+
+ ---load hi-maude.maude
+
+
+********************************************************************************
+
+*** PART I. Define the user-level syntax for modules and commands.
+
+********************************************************************************
+
+fmod HYBRID-MODULE-SYNTAX is
+---  including VIEWS .
+  inc TIMED-MODULE-SYNTAX . 
+
+  op homod_is_endhom : @Interface@ @SDeclList@ -> @Module@ .
+
+endfm
+
+
+***###########################################################
+
+fmod HTM-COMMAND-SYNTAX is  
+  inc RTM-COMMAND-SYNTAX .
+   
+
+  op hrew_in time <=_ using_stepsize_discreteswitch_. : @Bubble@  @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hrew_in time <_ using_stepsize_discreteswitch_. : @Bubble@  @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+  op hfrew_in time <=_ using_stepsize_discreteswitch_. : @Bubble@  @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hfrew_in time <_ using_stepsize_discreteswitch_. : @Bubble@  @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+  op hmc_|=t_in time <=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hmc_|=t_in time <_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+  op hsearch_=>*_with no time limit using_stepsize_discreteswitch_. : @Bubble@ @Bubble@  @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+  op hfind earliest_=>*_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+  op hsearch_=>1_in time <_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@  @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>*_in time <_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>!_in time <_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>+_in time <_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>1_in time <=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>*_in time <=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>!_in time <=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>+_in time <=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>1_in time >_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>*_in time >_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>!_in time >_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>+_in time >_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>1_in time >=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>*_in time >=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>!_in time >=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+  op hsearch_=>+_in time >=_ using_stepsize_discreteswitch_. : @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ @Bubble@ -> @Command@ .
+
+
+
+
+  op set num euler . : -> @Command@ .            *** using Euler method.
+  op set num mp . : -> @Command@ .           *** using Midpoint / RK2 method
+  op get num . : -> @Command@ .          
+  op show`modules`. : -> @Command@ .
+  op show hybrid modules . : -> @Command@ .
+
+endfm
+
+
+***###########################################################
+
+fmod HTM-SYNTAX is
+  inc FULL-MAUDE-SIGN . 
+  inc HYBRID-MODULE-SYNTAX .
+  inc HTM-COMMAND-SYNTAX .
+endfm
+
+
+***###########################################################
+
+*** The user text is parsed in the grammar HYBRID-GRAMMAR:
+
+fmod META-HTM-SIGN is
+  inc META-FULL-MAUDE-SIGN .
+  inc UNIT .                     *** To get the addImports function
+
+  op HYBRID-GRAMMAR : -> FModule [memo] .
+  eq HYBRID-GRAMMAR = 
+        addImports((including 'HTM-SYNTAX .), GRAMMAR) .
+endfm
+
+
+***###########################################################
+
+
+
+********************************************************************************
+
+*** PART II. Some built-in modules which are included automatically hybrid modules
+
+********************************************************************************
+
+
+fmod NUMERICAL-DATA is
+
+sort NumMethod .
+
+ops euler mp rk4 : -> NumMethod [ctor] .
+
+endfm 
+
+
+***###########################################################
+
+fmod DISCRETE-SWITCH-DATA is
+
+sort DSwitchType .
+
+ops accurate nonaccurate : ->  DSwitchType [ctor] .
+
+endfm 
+
+
+
+********************************************************************************
+
+*** PART III. Some meta-level operation on hybrid modules.
+
+********************************************************************************
+
+
+fmod INSERT-SYSMAN is
+
+   inc META-LEVEL .
+
+   op insertSysMan : Module Term Term Term Term -> Term .
+   op getConfig : Module Term -> Term .
+   op addSysMan : Term Term Term Term -> Term .
+   op removeSysMan : Term -> Term .
+
+  var M : Module .
+  vars T T' : Term .
+  vars NMTERM SSTERM DSTERM : Term .
+
+eq getConfig(M, T) =  getTerm(metaReduce(M, T)) .
+
+eq addSysMan('`{_`}[T], NMTERM, SSTERM, DSTERM) =
+
+
+    '`{_`}['__[T, '<_:_|_> ['sm.Oid,'SysMan.Cid,'_`,_['numMethod`:_[NMTERM],'stepSize`:_[SSTERM], 'stepSizeInput`:_[SSTERM], 'discreteSwitch`:_[DSTERM]]]]] .
+
+
+eq insertSysMan(M, T, NMTERM, SSTERM, DSTERM) = addSysMan(getConfig(M, T), NMTERM, SSTERM, DSTERM) .
+
+
+eq removeSysMan('_in`time_['`{_`}['__[T, '<_:_|_> ['sm.Oid, 'SysMan.Cid, 'numMethod`:_['euler.NumMethod]]]], T']) =  '_in`time_['`{_`}[T], T'] .
+
+
+endfm
+
+
+***###########################################################
+
+fmod HYBRID-META-REWRITE is
+
+   pr TIMED-MODULE-TRANSFORMATIONS .
+   inc TIMED-META-REWRITE .
+   inc META-LEVEL .
+   pr META-TERM .
+   inc INSERT-SYSMAN .
+
+*** Only num method as a term
+
+*** num method and stepsize as terms
+
+op hybridMetaRewrite : Module Term Bound ComparisonOp Term 
+                                           TickMode Term Term Term -> ResultPair .
+
+op hybridMetaFRewrite : Module Term Bound Nat ComparisonOp Term 
+                                           TickMode Term Term Term -> ResultPair .
+
+  var M : Module .
+  vars T T' : Term .
+  var B : Bound .
+  var N : Nat .
+  var COMP : ComparisonOp .
+  var TM : TickMode .
+  vars NMTERM SSTERM DSTERM : Term .
+
+*** only nummethod as term
+
+
+*** nummethod and stepsize as terms
+
+eq hybridMetaRewrite(M, T, B, COMP, T', TM, NMTERM, SSTERM, DSTERM) = 
+
+     timedMetaRewrite(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), B, COMP, T', TM) .
+
+
+eq hybridMetaFRewrite(M, T, B, N, COMP, T', TM, NMTERM, SSTERM, DSTERM) = 
+
+     timedMetaFRewrite(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), B, N, COMP, T', TM) .    
+
+endfm
+
+***###########################################################
+
+fmod HYBRID-META-LEVEL is
+
+  pr TIMED-META-LEVEL .
+  pr HYBRID-META-REWRITE .
+  pr HYBRID-FIND-EARLIEST .
+  pr HYBRID-META-SEARCH .
+  pr HYBRID-MODEL-CHECKING .
+
+endfm
+
+
+***###########################################################
+
+fmod HYBRID-DATA is
+  protecting QID-LIST .
+  protecting META-LEVEL .
+  protecting TICK-MODES .
+
+  pr NUMERICAL-DATA .
+  pr RAT .
+
+  sort HybridData .
+
+  op <_,_,_,_> : QidList TickMode NumMethod PosRat -> HybridData [ctor] .
+
+  var QL : QidList .
+  vars TM TM' : TickMode .
+  var Q : Qid .
+  vars NM NM' : NumMethod .
+  var SS : PosRat .
+
+
+  op initHybridData : -> HybridData .
+  eq initHybridData = < nil , det , euler, 1 > . 
+
+  op addHybridModName : HybridData Qid -> HybridData .
+  eq addHybridModName(< QL , TM , NM, SS >, Q) = < QL Q , TM, NM, SS > .
+
+  op setNumMethod : HybridData NumMethod -> HybridData .
+  eq setNumMethod(< QL , TM , NM, SS >, NM') = < QL , TM, NM', SS > .
+
+  op getNumMethod : HybridData -> NumMethod .
+  eq getNumMethod(< QL , TM , NM, SS >) = NM .
+
+  op getHybridModNames : HybridData -> QidList .
+  eq getHybridModNames(< QL , TM , NM, SS >) = QL .
+
+  op getStepSize : HybridData -> PosRat .
+  eq getStepSize(< QL , TM , NM, SS >) = SS .
+
+endfm
+
+
+***###########################################################
+
+fmod HYBRID-META-SEARCH is
+
+   inc TIMED-META-SEARCH .
+   inc INSERT-SYSMAN .
+
+  op hybridMetaSearch : Module Term Term Condition Qid Bound Nat
+                       ComparisonOp Term TickMode Term Term Term ~> ResultTriple? .
+  *** The next-to-last two ones are the time limit ...
+
+
+
+  *** For search in a time interval!
+
+  var M : Module .
+  vars T T' T'' T''' : Term .
+  var COND : Condition .
+  var Q : Qid .
+  var B : Bound .
+  var N : Nat .
+  vars COMP COMP' : ComparisonOp .
+  var TM : TickMode .
+  vars NMTERM SSTERM DSTERM : Term .
+
+  ceq hybridMetaSearch(M, T, T', COND, Q, B, N, COMP, T'', TM, NMTERM, SSTERM, DSTERM) =
+        removeGlobal(
+          metaSearch(
+            dontTickPastTime(noZeroTick(applyTSS(M, TM)), COMP, T''),
+            globalizeTerm(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), getTerm(metaReduce(M, 'zero.Time))),
+            expandObjectPattern(M, globalizeTerm(T', myNewVar(T'))),
+            COND, Q, B, N)) 
+      if (Q == ') or (Q == '+) or (Q == '*) /\ 
+         (COMP == le) or (COMP == lt) . 
+
+  ceq hybridMetaSearch(M, T, T', COND, Q, B, N, COMP, T'', TM, NMTERM, SSTERM, DSTERM) =
+        removeGlobal(
+          metaSearch(
+            globalizeMod(noZeroTick(applyTSS(M, TM))),
+            globalizeTerm(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), getTerm(metaReduce(M, 'zero.Time))),
+            expandObjectPattern(M, globalizeTerm(T', myNewVar(T'))),
+            COND /\ 
+               searchTimeConstraint(globalizeTerm(T', myNewVar(T')), 
+                                    COMP, T''),
+            Q, B, N)) 
+      if (COMP == ge) or (COMP == gt) . 
+
+  op searchTimeConstraint : Term ComparisonOp Term -> Condition .
+  *** Adds a constraint that relates the global time elapse, WHICH MUST
+  *** be in GLOBALIZED form. searchTimeConstraint(t0, ge, timelimit)
+  *** gives a condition that ensures that time elapse is ge timelimit!
+---(
+  eq searchTimeConstraint('global['_in`time_[T, T']], COMP, T'') =
+       (comparisonOpSymbol(COMP)[T', T''] = 'true.Bool) .
+)
+  *** Now, we find normal forms within a time frame!!!
+
+  ceq hybridMetaSearch(M, T, T', COND, '!, B, N, COMP, T'', TM, NMTERM, SSTERM, DSTERM) =
+        removeGlobal(
+          metaSearch(
+            loopWhenLimit(noZeroTick(applyTSS(M, TM)), COMP, T''),
+            globalizeTerm(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), getTerm(metaReduce(M, 'zero.Time))),
+            expandObjectPattern(M, globalizeTerm(T', myNewVar(T'))),
+            COND /\ 
+              searchTimeConstraint(globalizeTerm(T', myNewVar(T')), COMP, T''),
+            '!, B, N)) 
+      if (COMP == le) or (COMP == lt) . 
+
+
+endfm
+
+
+***###########################################################
+
+
+fmod HYBRID-FIND-EARLIEST is
+---  including TIMED-MODULE-TRANSFORMATIONS .
+---  protecting EXPAND-OBJECT-PATTERN .
+inc FIND-EARLIEST .
+inc INSERT-SYSMAN .
+
+  *** Find the earliest time something (a search condition)
+  *** can happen. Assumes of course linear time!
+
+  op findEarliestHybrid : Module Term Term Condition TickMode Term Term Term ~> ResultTriple? .
+
+*** Just use from RTM
+---  op findEarliestGlobal : Module Term Term Condition ~> ResultTriple? .
+---  op findEarliestGlobal : Module Term Term Condition Term ~> ResultTriple? .
+  *** The last one is the time term.
+
+
+  --- auxiliary function:
+---  op timePart : Term -> Term .
+  *** Gives the total time elapse in a term, which is either a 
+  *** GlobalSystem or Clockedsystem or a "global" term, or 'zero.Time if 
+  *** it is not a ClockedSystem term. Should give error instead??
+
+
+
+  vars THIS_SEARCH SEARCH_EARLIER : ResultTriple? .
+  *** Should these even be of the KIND??
+  var M : Module .
+  vars T T' T'' : Term .
+  var COND : Condition .
+  var TM : TickMode .
+  var TL : TermList .
+  var F : Qid .
+  vars NMTERM SSTERM DSTERM : Term .
+
+
+  eq findEarliestHybrid(M, T, T', COND, TM, NMTERM, SSTERM, DSTERM) =
+       removeGlobal(
+         findEarliestGlobal(globalizeMod(noZeroTick(applyTSS(M, TM))),
+---                            globalizeTerm(M, T, 
+                            globalizeTerm(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), 
+
+                                          getTerm(metaReduce(M,'zero.Time))),
+                            expandObjectPattern(M, 
+                                                globalizeTerm(T', 
+                                                              myNewVar(T'))),
+                            COND)) .
+
+
+
+endfm
+
+
+***###########################################################
+
+
+
+fmod HYBRID-MODEL-CHECKING is
+
+  inc TIMED-MODEL-CHECKING .
+  inc INSERT-SYSMAN .
+
+  op metaMCHybrid : Module Term Term ComparisonOp Term TickMode Term Term Term ~> ResultPair .
+
+ vars T T' T'' : Term .
+  var TL : TermList .
+  var NETL : NeTermList .
+  var M : Module .
+  var COMP : ComparisonOp .
+  var Q : Qid . 
+  var IL : ImportList .
+  var SS : SortSet .
+  var SSDS : SubsortDeclSet .
+  var OPDS : OpDeclSet .
+  var MAS : MembAxSet .
+  var EQS : EquationSet .
+  var RLS : RuleSet .
+  var RULE : Rule .
+  var COND : Condition .
+  var AS : AttrSet .
+  var TM : TickMode .
+  var H : Header .
+
+  vars NMTERM SSTERM DSTERM : Term .
+
+
+  *** Bounded timed model checking. 
+
+  eq metaMCHybrid(M, T, T', COMP, T'', TM, NMTERM, SSTERM, DSTERM) = 
+       removeGlobalFromMCResult(       
+         metaReduce(globalizeProperties(
+                    loopWhenLimit(noZeroTick(applyTSS(M, TM)), COMP, T'')),
+---                    'modelCheck[globalizeTerm(M,T, 
+                       'modelCheck[globalizeTerm(M, insertSysMan(M, T, NMTERM, SSTERM, DSTERM), 
+                                           getTerm(metaReduce(M,'zero.Time))),
+                        T'])) .
+
+
+endfm
+
+
+********************************************************************************
+
+*** PART IV. Processing of a hybrid module.
+
+********************************************************************************
+
+
+fmod HYBRID-UNIT-PROCESSING is
+---  protecting VIEW-PROCESSING .
+---  protecting TIMED-DATA . 
+
+   inc TIMED-UNIT-PROCESSING .
+   pr HYBRID-DATA .
+   
+  op hybridPreModuleToPreModule : Term -> Term .
+
+  vars T T' T'' T''' : Term .
+  vars F F' : Qid .
+  var TL : TermList .
+  var TD : TimedData .
+  var HD : HybridData .
+
+
+  eq hybridPreModuleToPreModule('homod_is_endhom[T, T']) = 
+       'omod_is_endom[T, '__['including_.['token[''TIMED-OO-PRELUDE.Qid]], 
+                             T']] .
+
+  op processHybridMetaLevel : Term HybridData -> Term .
+
+  ceq processHybridMetaLevel(F['_`(_`)['token[''HYBRID-META-LEVEL.Qid], T]],
+                            HD) =
+        '__[F['_`(_`)['token[''META-LEVEL.Qid], T]],
+            'protecting_.['token[''HYBRID-META-LEVEL.Qid]]]
+      if (F == 'including_.) or (F == 'inc_.) 
+         or (F == 'protecting_.) or (F == 'pr_.) .
+
+
+  ceq processHybridMetaLevel(F['_`(_`)['token[Q:Qid], T]],
+                            HD) =
+         F['_`(_`)['token[Q:Qid], T]]
+      if (Q:Qid =/= ''HYBRID-META-LEVEL.Qid)  and
+         (F == 'including_.) or (F == 'inc_.) 
+         or (F == 'protecting_.) or (F == 'pr_.) .
+
+
+  ceq processHybridMetaLevel(F[T, T'], HD) =
+        F[T, processHybridMetaLevel(T', HD)] 
+      if (F == 'fmod_is_endfm) or (F == 'mod_is_endm) or
+         (F == 'omod_is_endom) or (F == 'tmod_is_endtm) or
+         (F == 'tomod_is_endtom) or (F == 'fth_is_endfth) or
+         (F == 'th_is_endth) or (F == 'oth_is_endoth) or
+         (F == 'obj_is_jbo) or (F == 'obj_is_endo) or
+         (F == 'view_from_to_is_endv) or (F == 'tth_is_endtth) or
+         (F == 'toth_is_endtoth) or 
+         (F == 'homod_is_endhom).
+
+
+  eq processHybridMetaLevel('__[T, T'], HD) =
+        '__[processHybridMetaLevel(T, HD),
+            processHybridMetaLevel(T', HD)] .
+
+
+  ceq processHybridMetaLevel(F[F'[TL]], HD) = F[F'[TL]]
+      if (F' =/= '_`(_`)) and
+         ((F == 'including_.) or (F == 'inc_.) or
+         (F == 'protecting_.) or (F == 'pr_.)) .
+
+
+  ceq processHybridMetaLevel(F['token[T]], HD) = F['token[T]]
+      if (F == 'including_.) or (F == 'inc_.) or
+         (F == 'protecting_.) or (F == 'pr_.) .
+
+
+  ceq processHybridMetaLevel(F[TL], HD) = F[TL]
+      if not((F == 'including_.) or (F == 'inc_.) or
+             (F == 'protecting_.) or (F == 'pr_.) or
+             (F == 'fmod_is_endfm) or (F == 'mod_is_endm) or
+             (F == 'omod_is_endom) or (F == 'tmod_is_endtm) or
+             (F == 'tomod_is_endtom) or (F == 'fth_is_endfth) or
+             (F == 'th_is_endth) or (F == 'oth_is_endoth) or
+             (F == 'obj_is_jbo) or (F == 'obj_is_endo) or
+             (F == 'view_from_to_is_endv) or (F == 'tth_is_endtth) or
+             (F == 'toth_is_endtoth) or (F == '__) or
+             (F == 'homod_is_endhom)) .
+
+endfm
+
+
+********************************************************************************
+
+*** PART V. Command processing.
+
+********************************************************************************
+
+fmod HYBRID-COMMAND-PROCESSING is
+  inc TIMED-COMMAND-PROCESSING .
+
+  pr HYBRID-META-REWRITE .
+  pr HYBRID-MODEL-CHECKING .
+  pr HYBRID-META-SEARCH .
+  pr HYBRID-FIND-EARLIEST .
+
+
+   inc NUMERICAL-DATA .
+
+  *** These are the main functions which are called to 
+  *** interpret hybrid commands:
+
+
+  op procHybridCommand : Term ModuleExpression Database TickMode NumMethod PosRat -> QidList .
+
+
+  vars NM SOLVEDNM : NumMethod .
+  vars T T' T'' T''' T1 T2 T3 T4 T5 T6 T7 T8 PROPTERM TIMEBOUND 
+       LIMIT LIMIT'  TERM : Term .
+  var Q : Qid .
+  var ME : ModuleExpression .
+  var DB : Database .
+  var B : Bool .
+  var ODS : OpDeclSet .
+  var TMB : [Tuple<Term|Module|OpDeclSet|Bound>] .
+  var TM : [Tuple<Term|Module|OpDeclSet>] .
+  var RP : [ResultPair] .
+  var RT : [ResultTriple] .
+  var TS : Termset .
+  var TL : TermList .
+  vars COMP COMP' : ComparisonOp .
+  vars M M' MOD : Module .
+  var QIL : QidList .
+  vars D BOUND : Bound .
+  var VDS : OpDeclSet .
+  vars TiM SOLVEDTICKMODE : TickMode .
+  vars I J N : Nat .
+  vars COND COND' : Condition .
+  vars SEARCHPATTERN SEARCHPATTERN' : TermCondition .
+  var B? : [Bool] .
+  
+  vars NMTERM SSTERM DSTERM : Term .
+  var SS : PosRat .
+
+
+  op solveNumMethod : NumMethod Module Bool OpDeclSet Database ~> NumMethod .
+  eq solveNumMethod(euler, M, B, VDS, DB) = euler .
+  eq solveNumMethod(mp, M, B, VDS, DB) = mp .
+
+  *** prints the numerical method used:
+  op printNum : NumMethod Module -> QidList .
+  eq printNum(euler, M) = 'Euler 'method  .
+  eq printNum(mp, M) = 'Midpoint 'method  .
+
+
+
+***===========================================================
+*** nummethod and stepsize
+
+  ceq procHybridCommand(Q[T1, T2, T3, T4, T5], ME, DB, TiM, NM, SS) =
+        (if compiledModule(ME, DB)
+         then preprocessHybridCommandTLNSD(ME, getFlatModule(ME, DB), unbounded, 
+                                       getVars(ME, DB), DB, Q, T1, T2, T3, T4, T5, TiM)
+         else preprocessHybridCommandTLNSD(modExp(evalModExp(ME, DB)), 
+                                 getFlatModule(modExp(evalModExp(ME, DB)),
+                                               database(evalModExp(ME,DB))),
+                                       unbounded, 
+                                       getVars(modExp(evalModExp(ME, DB)),
+                                               database(evalModExp(ME,DB))), 
+                                       database(evalModExp(ME,DB)), 
+                                       Q, T1, T2, T3, T4, T5, TiM)
+         fi)
+      if (Q == 'hrew_in`time`<=_using_stepsize_discreteswitch_.) or (Q == 'hrew_in`time`<_using_stepsize_discreteswitch_.) or
+         (Q == 'hfrew_in`time`<=_using_stepsize_discreteswitch_.) or (Q == 'hfrew_in`time`<_using_stepsize_discreteswitch_.).
+
+
+***===========================================================
+
+  ceq procHybridCommand(Q[T1, T2, T3, T4, T5, T6], ME, DB, TiM, NM, SS) =
+        (if compiledModule(ME, DB)
+         then preprocessHybridCommandTPLNSD(ME, getFlatModule(ME, DB), unbounded, 
+                                        getVars(ME, DB), DB, Q, T1, T2, T3, TiM, T4, T5, T6)
+         else preprocessHybridCommandTPLNSD(modExp(evalModExp(ME, DB)), 
+                                   getFlatModule(modExp(evalModExp(ME, DB)), 
+                                                 database(evalModExp(ME, DB))),
+                                   unbounded, 
+                                   getVars(modExp(evalModExp(ME, DB)),
+                                           database(evalModExp(ME, DB))), 
+                                   database(evalModExp(ME, DB)), 
+                                   Q, T1, T2, T3, TiM, T4, T5, T6)
+          fi)
+
+      if find(string(Q), "in`time`<", 0) =/= notFound 
+         or find(string(Q), "in`time`>", 0) =/= notFound 
+         /\ (find(string(Q), "hsearch", 0) =/= notFound
+             or find(string(Q), "hmc_|=", 0) =/= notFound) .
+
+
+
+***===========================================================
+
+
+  ceq procHybridCommand(Q[T1, T2, T3, T4, T5], ME, DB, TiM, NM, SS) =
+        (if compiledModule(ME, DB)
+         then preprocessHybridCommandTPNSD(ME, getFlatModule(ME, DB), unbounded, 
+                                           getVars(ME, DB), DB, Q, T1, T2, TiM, T3, T4, T5)
+         else preprocessHybridCommandTPNSD(modExp(evalModExp(ME, DB)), 
+                                   getFlatModule(modExp(evalModExp(ME, DB)), 
+                                                 database(evalModExp(ME, DB))),
+                                   unbounded, 
+                                   getVars(modExp(evalModExp(ME, DB)),
+                                           database(evalModExp(ME, DB))), 
+                                   database(evalModExp(ME, DB)), Q, T1, T2, TiM, T3, T4, T5)
+          fi)
+      if (Q == 'hsearch_=>*_with`no`time`limit`using_stepsize_discreteswitch_.) or 
+         (Q == 'hfind`earliest_=>*_using_stepsize_discreteswitch_.) .
+
+
+
+***===========================================================
+
+*** For Hybrid rewriting 
+
+  op preprocessHybridCommandTLNSD : ModuleExpression Module Bound OpDeclSet 
+                                  Database Qid Term Term Term Term Term TickMode -> QidList .
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Command/module/initterm 
+          'does 'not 'parse. '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  not solveBubblesRew(T1, M, B, D, VDS, DB) :: 
+                    Tuple<Term|Module|OpDeclSet|Bound> .
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Time 'limit 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  not 
+             solveBubbles(T2, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Numerical 'method 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\ solveBubbles(T2, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\ not 
+            solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Step 'size 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\ solveBubbles(T2, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\ solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\ not 
+            solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+          ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Discrete 'switch 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  LIMIT := solveBubbles(T2, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                             getVars(getName(MOD), DB), DB)
+         /\  NMTERM := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\ not 
+            solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+
+  ceq preprocessHybridCommandTLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, T4, T5, TiM) =
+         procParsedHybridCommandTLNSD(Q, MOD, TERM, BOUND, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) 
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  LIMIT := solveBubbles(T2, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                             getVars(getName(MOD), DB), DB)
+         /\  NMTERM := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  DSTERM := solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB) .
+
+
+***===========================================================
+
+*** For hybrid model checking and hsearch with time limit
+
+  op preprocessHybridCommandTPLNSD : ModuleExpression Module Bound OpDeclSet 
+                                 Database Qid Term Term Term TickMode 
+                                 Term Term Term 
+                                 -> QidList .
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Command/module/initterm 
+          'does 'not 'parse.  '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  not solveBubblesRew(T1, M, B, D, VDS, DB) :: 
+                    Tuple<Term|Module|OpDeclSet|Bound> .
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Search 'patternXXX
+          'does 'not 'parse 'in 'module 
+          '\o eMetaPrettyPrint(getName(MOD))'\s '\c  '. '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+        /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  not searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), 
+                               DB), DB) :: TermCondition .
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Time 'limit 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition 
+         /\  not 
+             solveBubbles(T3, MOD, B, getVars(getName(MOD),DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command: 'Tick 'mode 'amount 
+          printTickAmount(TiM)
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition
+         /\  solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\  not solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), 
+                               DB) :: TickMode .
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Numerical 'method 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition 
+         /\  solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+          /\  solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), DB) :: TickMode
+         /\  not solveBubbles(T4, MOD, B, getVars(getName(MOD),DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Stepsize 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition 
+         /\  solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\  solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), DB) :: TickMode
+         /\  solveBubbles(T4, MOD, B, getVars(getName(MOD),DB), DB) :: Term 
+         /\  not solveBubbles(T5, MOD, B, getVars(getName(MOD),DB), DB) :: Term .
+
+
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Discreteswitch 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition 
+         /\  solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\  solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), DB) :: TickMode
+         /\  solveBubbles(T4, MOD, B, getVars(getName(MOD),DB), DB) :: Term 
+         /\  solveBubbles(T5, MOD, B, getVars(getName(MOD),DB), DB) :: Term 
+         /\  not solveBubbles(T6, MOD, B, getVars(getName(MOD),DB), DB) :: Term . 
+
+---(
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+
+         ('\n '\r 'Error '\c 'in 'hybrid'command:  'Discreteswitch 'term 
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\ {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\ SEARCHPATTERN := searchPattern(TERM, T2, MOD, B, 
+                                           getVars(getName(MOD), DB), DB)
+         /\ LIMIT := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\ SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                            getVars(getName(MOD), DB), DB) 
+         /\  NMTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB)         
+         /\  not solveBubbles(T6, MOD, B, getVars(getName(MOD),DB), DB) :: Term .
+)
+
+  ceq preprocessHybridCommandTPLNSD(ME, M, D, VDS, DB, Q, T1, T2, T3, TiM, T4, T5, T6) =
+         procParsedHybridCommandTPLNSD(Q, MOD, TERM, BOUND, 
+                                   termPart(SEARCHPATTERN), 
+                                   condPart(SEARCHPATTERN),  LIMIT,
+                                   SOLVEDTICKMODE, 
+                                   NMTERM, SSTERM, DSTERM) 
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB) 
+         /\ {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\ SEARCHPATTERN := searchPattern(TERM, T2, MOD, B, 
+                                           getVars(getName(MOD), DB), DB)
+         /\ LIMIT := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\ SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                            getVars(getName(MOD), DB), DB) 
+         /\  NMTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  DSTERM := solveBubbles(T6, MOD, B, getVars(getName(MOD), DB), DB) .
+
+
+
+  eq preprocessHybridCommandTPLNSD(ME, unitError(QIL), D, VDS, DB, Q, T1, 
+                               T2, T3, TiM, T4, T5, T6) =
+        qidError(QIL) .
+
+
+***===========================================================
+
+*** for hsearch notimelimit and hfind
+
+
+  op preprocessHybridCommandTPNSD : ModuleExpression Module Bound OpDeclSet 
+                                Database Qid Term Term TickMode
+                                Term Term Term -> QidList .
+      
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Command/module/initterm 
+          'does 'not 'parse. '\o '\n)
+      if B :=  included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  not solveBubblesRew(T1, M, B, D, VDS, DB) :: 
+                    Tuple<Term|Module|OpDeclSet|Bound> .
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command:  'Search 'pattern
+          'does 'not 'parse 'in 'module 
+          '\o eMetaPrettyPrint(getName(MOD))'\s '\c  '. '\o '\n)
+      if B :=  included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB) 
+         /\  not searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), 
+                               DB), DB) :: TermCondition .
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command: 'Tick 'mode 'amount 
+          printTickAmount(TiM)
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition
+         /\  not solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), 
+                               DB) :: TickMode .
+
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command: 'Numerical 'method  
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition
+         /\  solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), 
+                               DB) :: TickMode 
+         /\  not 
+             solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+         ('\n '\r 'Error '\c 'in 'hybrid 'command: 'Stepsize  
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  searchPattern(TERM, T2, MOD, B, getVars(getName(MOD), DB), 
+                           DB) :: TermCondition
+         /\  solveTickMode(TiM, MOD, B, getVars(getName(MOD), DB), 
+                               DB) :: TickMode 
+         /\ solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) :: Term 
+         /\ not 
+            solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+
+          ('\n '\r 'Error '\c 'in 'hybrid 'command: 'Discreteswitch  
+          'does 'not 'parse 'in 'module 
+          '\y eMetaPrettyPrint(getName(MOD)) '\o '\n)
+
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  SEARCHPATTERN := searchPattern(TERM, T2, MOD, B, 
+                                            getVars(getName(MOD), DB), DB)
+         /\  SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                             getVars(getName(MOD), DB), DB) 
+         /\  NMTERM := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB)         
+         /\  not 
+             solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB) :: Term .
+
+
+  ceq preprocessHybridCommandTPNSD(ME, M, D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5) =
+
+         procParsedHybridCommandTPNSD(Q, MOD, TERM, BOUND, 
+                                  termPart(SEARCHPATTERN),
+                                  condPart(SEARCHPATTERN), 
+                                  SOLVEDTICKMODE, 
+                                  NMTERM, SSTERM, DSTERM) 
+      if B := included('META-MODULE, getImports(getTopModule(ME, DB)), DB)
+         /\  {TERM, MOD, ODS, BOUND} := solveBubblesRew(T1, M, B, D, VDS, DB)
+         /\  SEARCHPATTERN := searchPattern(TERM, T2, MOD, B, 
+                                            getVars(getName(MOD), DB), DB)
+         /\  SOLVEDTICKMODE := solveTickMode(TiM, MOD, B, 
+                                             getVars(getName(MOD), DB), DB) 
+         /\  NMTERM := solveBubbles(T3, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  SSTERM := solveBubbles(T4, MOD, B, getVars(getName(MOD), DB), DB) 
+         /\  DSTERM := solveBubbles(T5, MOD, B, getVars(getName(MOD), DB), DB) .
+
+
+    eq preprocessHybridCommandTPNSD(ME, unitError(QIL), D, VDS, DB, Q, T1, T2, TiM, T3, T4, T5)
+           = qidError(QIL) .
+
+***===========================================================
+
+
+op procParsedHybridCommandTLNSD : Qid Module Term Bound Term TickMode Term Term Term -> QidList .
+
+
+ceq procParsedHybridCommandTLNSD(Q, MOD, TERM, BOUND, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =  
+         if RP :: ResultPair
+         then ('\n '\c 'Hybrid 'rewrite 
+               (if BOUND =/= unbounded    *** write [13] etc 
+                then ('\s '`[ qid(string(BOUND, 10)) '`] )
+                else nil fi) '\o '\s '\s 
+               eMetaPrettyPrint(MOD, TERM) '\c  'in  '\o
+               eMetaPrettyPrint(getName(MOD)) '\c 'with 'mode 
+               printMode(SOLVEDTICKMODE, MOD) 
+               'in 'time  (if Q == 'hrew_in`time`<_using_stepsize_discreteswitch_. then '<
+                           else '<= fi) eMetaPrettyPrint(MOD, LIMIT) '\n
+               '\c '\n 'using '\o
+               eMetaPrettyPrint(MOD, NMTERM)       
+               '\c '\n 'stepsize '\o
+               eMetaPrettyPrint(MOD, SSTERM)
+               '\c '\n 'discreteswitch '\o 
+               eMetaPrettyPrint(MOD, DSTERM)
+               '\c '\n 'Result '\o 
+               eMetaPrettyPrint(getType(RP)) '\c ': '\o '\n '\s '\s
+               eMetaPrettyPrint(MOD, getTerm(RP)) '\n)
+         else ('\n '\r 'Error 'in 'hybrid 'rewrite.  '\o '\n)
+         fi
+      if (Q == 'hrew_in`time`<_using_stepsize_discreteswitch_.) or (Q == 'hrew_in`time`<=_using_stepsize_discreteswitch_.) 
+ 
+        /\ RP := hybridMetaRewrite(MOD, TERM, BOUND,
+                                   if Q == 'hrew_in`time`<_using_stepsize_discreteswitch_. then lt 
+                                   else le fi, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) .
+
+
+*** For fair hybrid rewrite
+
+ceq procParsedHybridCommandTLNSD(Q, MOD, TERM, BOUND, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =  
+         if RP :: ResultPair
+         then ('\n '\c 'Hybrid 'fair 'rewrite 
+               (if BOUND =/= unbounded    *** write [13] etc 
+                then ('\s '`[ qid(string(BOUND, 10)) '`] )
+                else nil fi) '\o '\s '\s 
+               eMetaPrettyPrint(MOD, TERM) '\c  'in  '\o
+               eMetaPrettyPrint(getName(MOD)) '\c 'with 'mode 
+               printMode(SOLVEDTICKMODE, MOD) 
+               'in 'time  (if Q == 'hfrew_in`time`<_using_stepsize_discreteswitch_. then '<
+                           else '<= fi) eMetaPrettyPrint(MOD, LIMIT) '\n
+               '\c '\n 'using '\o
+               eMetaPrettyPrint(MOD, NMTERM)       
+               '\c '\n 'stepsize '\o
+               eMetaPrettyPrint(MOD, SSTERM)
+               '\c '\n 'discreteswitch '\o 
+               eMetaPrettyPrint(MOD, DSTERM)
+               '\c '\n 'Result '\o 
+               eMetaPrettyPrint(getType(RP)) '\c ': '\o '\n '\s '\s
+               eMetaPrettyPrint(MOD, getTerm(RP)) '\n)
+         else ('\n '\r 'Error 'in 'hybrid 'rewrite.  '\o '\n)
+         fi
+      if (Q == 'hfrew_in`time`<_using_stepsize_discreteswitch_.) or (Q == 'hfrew_in`time`<=_using_stepsize_discreteswitch_.) 
+ 
+        /\ RP := hybridMetaFRewrite(MOD, TERM, BOUND, 1, 
+                                   if Q == 'hfrew_in`time`<_using_stepsize_discreteswitch_. then lt 
+                                   else le fi, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) .
+
+
+***===========================================================
+
+  op procParsedHybridCommandTPLNSD : Qid Module Term Bound Term Condition Term 
+                                 TickMode
+                                 Term Term Term 
+                                 -> QidList .
+
+  *** Timed model checking with limit:
+ 
+  ceq procParsedHybridCommandTPLNSD(Q, MOD, TERM, BOUND, T, nil, 
+                                LIMIT, SOLVEDTICKMODE, 
+                                NMTERM, SSTERM, DSTERM) =
+        if RP :: ResultPair then
+         ('\n '\c 'Model 'check '\o
+                  eMetaPrettyPrint(MOD, TERM)
+           '\c '\s '|=t '\o eMetaPrettyPrint(MOD, T)
+           '\c 'in '\o
+         eMetaPrettyPrint(getName(MOD)) '\c '\s 
+         'in 'time commandToCompSymb(Q)  
+         eMetaPrettyPrint(MOD, LIMIT) '\c     'with 'mode 
+            printMode(SOLVEDTICKMODE, MOD) '\c '\n 
+            '\c '\n 'using '\o
+            eMetaPrettyPrint(MOD, NMTERM)       
+            '\c '\n 'stepsize '\o
+            eMetaPrettyPrint(MOD, SSTERM)
+          '\c '\n 'discreteswitch '\o 
+            eMetaPrettyPrint(MOD, DSTERM)
+          '\c '\n 'Result '\o 
+           eMetaPrettyPrint(getType(RP)) '\c ': '\n '\o '\s '\s
+           eMetaPrettyPrint(MOD, getTerm(RP)) '\o '\n)
+        else ('\n '\r 'Model 'checking: 'something 'went 'wrong! '\n '\o)
+        fi
+      if (Q == 'hmc_|=t_in`time`<_using_stepsize_discreteswitch_.) or (Q == 'hmc_|=t_in`time`<=_using_stepsize_discreteswitch_.) 
+         /\ RP := metaMCHybrid(MOD, TERM, T,
+                         commandToComp(Q), LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) . 
+
+
+  ceq procParsedHybridCommandTPLNSD(Q, MOD, TERM, BOUND, T, COND, 
+                                LIMIT, SOLVEDTICKMODE,
+                                NMTERM, SSTERM, DSTERM) =
+       ('\n '\r 'Error: 'No 'condition 'in 
+                            'temporal 'logic 'model 'checking!  '\o '\n)
+      if (Q == 'hmc_|=t_in`time`<_using_stepsize_discreteswitch_.) or (Q == 'hmc_|=t_in`time`<=_using_stepsize_discreteswitch_.) 
+         /\ COND =/= nil . 
+
+
+***===========================================================
+ *** For hsearch
+
+  *** tsearch with no time limit:
+
+  op procParsedHybridCommandTPNSD : Qid Module Term Bound Term Condition 
+                                   TickMode Term Term Term -> QidList .
+
+  ceq procParsedHybridCommandTPNSD(Q, MOD, TERM, BOUND, T, COND, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =
+        ('\n '\c 'Hybrid 'search 
+                (if BOUND =/= unbounded    *** write [13] etc 
+                then ('\s '`[ qid(string(BOUND, 10)) '`] '\s )
+                else nil fi) 'in  '\o 
+         eMetaPrettyPrint(getName(MOD)) '\c  '\s '\n '\t
+         eMetaPrettyPrint(MOD, TERM) qid("=>" + string(searchQid(Q))) '\s
+         eMetaPrettyPrint(MOD, T) '\n 
+     '\c     'with 'no 'time 'limit 'and 'with 'mode 
+         printMode(SOLVEDTICKMODE, MOD)  ': '\n '\o
+            '\c '\n 'using '\o
+            eMetaPrettyPrint(MOD, NMTERM)       
+            '\c '\n 'stepsize '\o
+            eMetaPrettyPrint(MOD, SSTERM)
+            '\c '\n 'disctereswitch '\o
+            eMetaPrettyPrint(MOD, DSTERM)
+
+         procHybridSearch2(MOD,
+                          TERM, T, COND, 
+                          if searchQid(Q) == '1 then '+ else searchQid(Q) fi, 
+                          if searchQid(Q) == '1 then 1 else unbounded fi, 0, 
+                          ge , 'zero.Time, BOUND, SOLVEDTICKMODE, 
+                          NMTERM, SSTERM, DSTERM))
+      if (Q == 'hsearch_=>*_with`no`time`limit`using_stepsize_discreteswitch_.) .
+
+***===========================================================
+
+  op procHybridSearch2 : Module Term Term Condition Qid Bound Nat
+                        ComparisonOp Term Bound TickMode Term Term Term -> QidList .
+
+  *** procHybridSearch2(module, initterm, pattern, condition, 
+  ***                  arrowkind, depthOfRewrites, solNo, limit, 
+  ***                  noOfSolsSought, tickMode, nummethod, stepsize, discreteswitch)
+
+  eq procHybridSearch2(MOD, TERM, T, COND, Q, D, N, COMP, LIMIT,
+                      BOUND, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =
+       if 
+         hybridMetaSearch(MOD, TERM, T, COND, Q, D, N, COMP, 
+                         LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM)
+         :: ResultTriple
+       then 
+         ('\n  '\c 'Solution qid(string(N + 1, 10))
+          '\n '\o eMetaPrettyPrint(MOD, getSubstitution(hybridMetaSearch(MOD, 
+                      TERM, T, COND, Q, D, N, COMP, LIMIT, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM)))
+          '\n
+          (if N + 1 < BOUND
+           then procHybridSearch2(MOD, TERM, T, COND, Q, D, 
+                                 N + 1, COMP, LIMIT, BOUND, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM)
+           else nil fi)
+          )
+       else
+       (if N == 0 then '\n '\c 'No 'solution '\o '\n 
+        else '\n   '\c 'No 'more 'solutions '\o '\n fi)
+       fi . 
+
+
+
+***===========================================================
+
+*** search with time limits:
+
+  ceq procParsedHybridCommandTPLNSD(Q, MOD, TERM, BOUND, T, COND, LIMIT, 
+                                SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =
+        ('\n '\c 'Hybrid 'search 
+               (if BOUND =/= unbounded    *** write [13] etc 
+                then ('\s '`[ qid(string(BOUND, 10)) '`] '\s )
+                else nil fi) 'in '\o 
+         eMetaPrettyPrint(getName(MOD)) '\c '\s '\n '\t
+         eMetaPrettyPrint(MOD, TERM) qid("=>" + string(searchQid(Q))) '\s
+         eMetaPrettyPrint(MOD, T) '\n '\c
+         'in 'time commandToCompSymb(Q) 
+         eMetaPrettyPrint(MOD, LIMIT) 'and 'with 'mode 
+         printMode(SOLVEDTICKMODE, MOD)   ': '\n '\o
+
+            '\c '\n 'using '\o
+            eMetaPrettyPrint(MOD, NMTERM)       
+            '\c '\n 'stepsize '\o
+            eMetaPrettyPrint(MOD, SSTERM)
+           '\c '\n 'stepsize '\o
+            eMetaPrettyPrint(MOD, DSTERM)
+
+         procHybridSearch2(MOD,
+                          TERM, T, COND, 
+                          if searchQid(Q) == '1 then '+ else searchQid(Q) fi, 
+                          if searchQid(Q) == '1 then 1 else unbounded fi, 0, 
+                          commandToComp(Q), LIMIT, BOUND, SOLVEDTICKMODE, 
+                          NMTERM, SSTERM, DSTERM)) 
+      if (Q == 'hsearch_=>1_in`time`<_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>*_in`time`<_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>+_in`time`<_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>!_in`time`<_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>1_in`time`<=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>*_in`time`<=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>+_in`time`<=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>!_in`time`<=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>1_in`time`>=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>*_in`time`>=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>+_in`time`>=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>!_in`time`>=_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>1_in`time`>_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>*_in`time`>_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>+_in`time`>_using_stepsize_discreteswitch_.) or
+         (Q == 'hsearch_=>!_in`time`>_using_stepsize_discreteswitch_.) .
+
+***===========================================================
+
+  *** Find earliest: no time limit.
+  ceq procParsedHybridCommandTPNSD('hfind`earliest_=>*_using_stepsize_discreteswitch_., MOD, TERM, BOUND, 
+                               T, COND, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) =
+        ('\n '\c 'Find 'earliest '\s '\o 
+         eMetaPrettyPrint(MOD, T) '\c  'in '\o
+         eMetaPrettyPrint(getName(MOD)) '\c 'such 'that '\s '\n '\t
+         '\o eMetaPrettyPrint(MOD, TERM) '=>* '\s
+         eMetaPrettyPrint(MOD, T) '\n 
+         '\c 'with 'mode 
+         printMode(SOLVEDTICKMODE, MOD) '\c  ': '\n '\o
+            '\c '\n 'using '\o
+            eMetaPrettyPrint(MOD, NMTERM)       
+            '\c '\n 'stepsize '\o
+            eMetaPrettyPrint(MOD, SSTERM)
+            '\c '\n 'discreteswitch '\o
+            eMetaPrettyPrint(MOD, DSTERM)
+
+         *** Here comes the real call:
+         (if RT :: ResultTriple then 
+            ('\c '\n 'Result: '\o '\t
+             eMetaPrettyPrint(MOD, getTerm(RT)) '\o '\n )
+          else (if RT == failure then
+                   ('\c '\n 'Result: 'state 'not 'reachable. '\o '\n) 
+                else ('\n '\r 'Error: 'something 'went 'wrong. '\o '\n)
+                fi)
+          fi)
+        )
+      if RT := findEarliestHybrid(MOD, TERM, T, COND, SOLVEDTICKMODE, NMTERM, SSTERM, DSTERM) .
+
+
+***===========================================================
+
+
+
+
+
+
+endfm
+
+********************************************************************************
+
+*** PART VI. Menu.
+
+********************************************************************************
+
+
+
+
+********************************************************************************
+
+*** PART VII. Hybrid Database handling.
+
+********************************************************************************
+
+mod HYBRID-DATABASE-HANDLING is
+  including TIMED-DATABASE-HANDLING .
+
+---  protecting TIMED-UNIT-PROCESSING .
+  pr HYBRID-UNIT-PROCESSING .
+
+---  protecting TIMED-COMMAND-PROCESSING .
+  pr HYBRID-COMMAND-PROCESSING .
+
+---  protecting TIMED-DATA .
+  pr HYBRID-DATA .
+
+---  protecting HELP-MENU .
+
+  *** First, we define an additional attribute
+  *** timedModuleData which is used to store whatever
+  *** we need to store about timed stuff. In this first prototype,
+  *** it is just the list of all names of timed modules ...
+
+  sort HybridDatabaseClass .
+  subsort HybridDatabaseClass < TimedDatabaseClass .
+
+  op HybridDatabase : -> HybridDatabaseClass [ctor] .
+  op hybridData :_ : HybridData -> Attribute [ctor] .
+
+  var ATTS : AttributeSet .
+  var DATABASE : DatabaseClass .
+  var HYBRIDDATABASE : HybridDatabaseClass .
+
+  var TIMEDDATABASE : TimedDatabaseClass .
+
+  var DB : Database .
+  vars F Q : Qid .
+  vars T T' T'' T''' : Term .
+  var TL : TermList .
+  var O : Oid .
+  var MN : ModuleName .
+  var TIMEDDATA : TimedData .
+  var HYBRIDDATA : HybridData .
+  var ME : ModuleExpression .
+  var QIL : QidList .
+
+
+  *** First, read timed module when we are not in a timed database, and
+  *** will have to change into a timed database ...
+
+  crl [databaseToHybridDatabase] :
+      < O : DATABASE | input : (F[T, T']),
+                       ATTS >
+      =>
+      < O : HybridDatabase | input : (F[T, T']), 
+                            timedData : initTimedData,
+                            hybridData : initHybridData,
+                            ATTS > 
+      if (F == 'homod_is_endhom) or-else (F == 'tomod_is_endtom) 
+          and not (DATABASE :: HybridDatabaseClass) .
+
+
+  *** Now, read timed stuff ...
+  crl [readHybridModule] : 
+      < O : HYBRIDDATABASE | db : DB, 
+                             input : (F[T, T']), 
+                             output : nil, 
+                             default : ME,
+                             timedData : TIMEDDATA,
+                             hybridData : HYBRIDDATA, 
+                             ATTS >
+      => 
+      < O : HYBRIDDATABASE | db : procModule(
+                                    hybridPreModuleToPreModule(
+                                        processHybridMetaLevel(F[T, T'], 
+                                                              HYBRIDDATA)),
+                                             DB),
+                             input : nilTermList,
+                             output :
+                              ('\n '\c 'Introduced 'HYBRID 'module: '\o
+                               header2Qid(parseHeader(T)) '\n),
+                             default : parseHeader(T),
+                             hybridData : addHybridModName(HYBRIDDATA, 
+                                                   pureModName(T)),
+                             ATTS >
+      if (F == 'homod_is_endhom) .
+
+
+*** For timed modules
+
+
+  crl [readTimedModule] : 
+      < O : HYBRIDDATABASE | db : DB, input : (F[T, T']), 
+                            output : nil, default : ME,
+                            timedData : TIMEDDATA, 
+                            hybridData : HYBRIDDATA, 
+                            ATTS >
+      => 
+      < O : HYBRIDDATABASE | db : procModule(
+                                    timedPreModuleToPreModule(
+                                        processTimedMetaLevel(F[T, T'], 
+                                                              TIMEDDATA)),
+                                             DB),
+                            input : nilTermList,
+                            output :
+                              ('\n '\c 'Introduced 'timed 'module 'from 'HTM: '\o
+                               header2Qid(parseHeader(T)) '\n),
+                            default : parseHeader(T),
+                            timedData : addModName(TIMEDDATA, 
+                                                   pureModName(T)),
+                            ATTS >
+      if (F == 'tomod_is_endtom) .
+
+
+ rl [showHybridModules] :
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : ('show`hybrid`modules`..@Command@),
+                      output : nil, hybridData : HYBRIDDATA, ATTS >
+     =>
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : nilTermList,
+                      output : 
+                        ('\n '\c 'Hybrid 'modules 'are: '\y 
+                         getHybridModNames(HYBRIDDATA) '\o '\n), 
+                      hybridData : HYBRIDDATA, ATTS > .
+
+
+  rl [setNumEuler] :
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : ('set`num`euler`..@Command@),
+                      output : nil, hybridData : HYBRIDDATA, ATTS >
+     =>
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : nilTermList,
+                      output : 
+                        ('\n '\c 'Numerical 'method 'set 'to 
+                                 'Euler 'method  '\o '\n),
+                      hybridData : setNumMethod(HYBRIDDATA, euler), ATTS > .
+
+  rl [setNumRK2] :
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : ('set`num`mp`..@Command@),
+                      output : nil, hybridData : HYBRIDDATA, ATTS >
+     =>
+     < O : HYBRIDDATABASE | db : DB, 
+                      input : nilTermList,
+                      output : 
+                        ('\n '\c 'Numerical 'method 'set 'to 
+                                 'Midpoint 'method  '\o '\n),
+                      hybridData : setNumMethod(HYBRIDDATA, mp), ATTS > .
+
+
+ rl [getNum] : 
+     < O : HYBRIDDATABASE | input : ('get`num`..@Command@), output : nil,
+                           hybridData : HYBRIDDATA, ATTS >
+     =>
+     < O : HYBRIDDATABASE | input : nilTermList,
+                             output : ('\n '\c 'Numerical 'method 'is
+                                       printNumBubble(getNumMethod(HYBRIDDATA))
+                                       '\o '\n), 
+                             hybridData : HYBRIDDATA, ATTS > .
+
+
+ op printNumBubble : NumMethod -> QidList .
+
+ eq printNumBubble(euler) = 'Euler .
+ eq printNumBubble(mp) = 'Midpoint .
+
+
+
+  crl [hybridExecution] :
+      < O : HYBRIDDATABASE | db : DB,
+                             input : (F[TL]), 
+                             output : QIL, 
+                             default : ME,
+                             timedData : TIMEDDATA,
+                             hybridData : HYBRIDDATA, 
+                             ATTS > 
+      =>
+      < O : HYBRIDDATABASE | db : DB, 
+                             input : nilTermList,
+                             output : procHybridCommand(F[TL], ME, DB, 
+                                                  getTickMode(TIMEDDATA),
+                                                  getNumMethod(HYBRIDDATA),
+                                                  getStepSize(HYBRIDDATA)),
+                             default : ME,
+                             timedData : TIMEDDATA, 
+                             hybridData : HYBRIDDATA,
+                             ATTS >
+     if F == 'hrew_in`time`<_using_stepsize_discreteswitch_. or F == 'hrew_in`time`<=_using_stepsize_discreteswitch_. or 
+        F == 'hfrew_in`time`<_using_stepsize_discreteswitch_. or F == 'hfrew_in`time`<=_using_stepsize_discreteswitch_. or
+        F == 'hmc_|=t_in`time`<_using_stepsize_discreteswitch_.  or F == 'hmc_|=t_in`time`<=_using_stepsize_discreteswitch_. or
+        F == 'hsearch_=>*_with`no`time`limit`using_stepsize_discreteswitch_. or 
+        F == 'hfind`earliest_=>*_using_stepsize_discreteswitch_. or
+        F == 'hsearch_=>1_in`time`<_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>*_in`time`<_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>!_in`time`<_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>+_in`time`<_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>1_in`time`<=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>*_in`time`<=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>!_in`time`<=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>+_in`time`<=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>1_in`time`>_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>*_in`time`>_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>!_in`time`>_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>+_in`time`>_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>1_in`time`>=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>*_in`time`>=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>!_in`time`>=_using_stepsize_discreteswitch_. or 
+        F == 'hsearch_=>+_in`time`>=_using_stepsize_discreteswitch_. .
+ 
+
+endm
+
+
+********************************************************************************
+
+*** PART VIII. The 'Hybrid-Time Maude' module.
+
+********************************************************************************
+
+mod HYBRID-TIME-MAUDE is
+  pr META-HTM-SIGN .
+
+  pr HYBRID-DATABASE-HANDLING .
+  inc LOOP-MODE .
+  pr BANNER .
+
+  --- State for LOOP mode:
+  subsort Object < State .
+
+  op o : -> Oid .
+  op init : -> System .
+
+  var  Atts : AttributeSet .
+  var  X@Database : DatabaseClass .
+  var  O : Oid .
+  var  DB : Database .
+  var  ME : Header .
+  vars QIL QIL' QIL'' : QidList .
+  var  TL : TermList .
+  var  N : Nat .
+  vars RP RP' : ResultPair .
+
+  rl [init] :
+     init
+     => [nil,
+         < o : Database | 
+            db : initialDatabase,
+            input : nilTermList, output : nil, 
+            default : 'CONVERSION >,
+         ('\n '\t '\s '\s '\s '\s '\s string2qidList(banner) '\n
+         '\n '\t    '\s '\s  '\! '\m  'HI-Maude '1.0 '\o '\c
+             'extension 'February '16 '`, '\s '2011 '\o '\n)] .
+
+
+  crl [in] :
+    [QIL, 
+     < O : X@Database | 
+         db : DB, input : nilTermList, output : nil, default : ME, Atts >, 
+     QIL']
+    => [nil, 
+        < O : X@Database | db : DB, 
+            input : getTerm(metaParse(HYBRID-GRAMMAR, QIL, '@Input@)),
+            output : nil, default : ME, Atts >, 
+         QIL'] 
+    if QIL =/= nil /\ metaParse(HYBRID-GRAMMAR, QIL, '@Input@) : ResultPair .
+     
+  crl [in] :
+    [QIL, 
+     < O : X@Database | 
+         db : DB, input : nilTermList, output : nil, default : ME, Atts >, 
+     QIL']
+    => [nil, 
+       < O : X@Database | db : DB, input : nilTermList, 
+           output : ('\r 'Warning: 
+                     printSyntaxError(metaParse(HYBRID-GRAMMAR, QIL, '@Input@),
+                                     QIL) 
+                     '\n
+                     '\r 'Error: '\o 'No 'parse 'for 'input. '\n), 
+           default : ME, Atts >, 
+       QIL'] 
+    if QIL =/= nil 
+       /\  noParse(N) := metaParse(HYBRID-GRAMMAR, QIL, '@Input@)  .
+
+  crl [in] :
+    [QIL, 
+     < O : X@Database | 
+         db : DB, input : nilTermList, output : nil, default : ME, Atts >, 
+     QIL']
+    => [nil, 
+       < O : X@Database | db : DB, input : nilTermList, 
+           output :  ('\r 'Error: 'Ambiguous 'input. '\n), 
+           default : ME, Atts >, 
+       QIL'] 
+    if QIL =/= nil 
+       /\  ambiguity(RP, RP') := metaParse(HYBRID-GRAMMAR, QIL, '@Input@)  .
+
+  crl [out] :
+    [QIL, 
+     < O : X@Database | 
+         db : DB, input : TL, output : QIL', default : ME, Atts >, 
+     QIL'']
+    => [QIL, 
+        < O : X@Database | 
+            db : DB, input : TL, output : nil, default : ME, Atts >, 
+        (QIL' QIL'')] 
+    if QIL' =/= nil .
+endm
+
+
+***###########################################################
+
+
+loop init .
+
+in eflib-float.maude
+
+trace exclude HYBRID-TIME-MAUDE .
+
+set show loop stats on .
+set show loop timing on .
+set show advisories on .
+
+
+
+
+eof
+

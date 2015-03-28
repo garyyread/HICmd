@@ -1,0 +1,1591 @@
+
+
+******************************************************************************************************
+***
+*** E/F Hybrid Computation Library
+*** 
+*** Version 1.5
+*** 
+*** Created by Muhammad Fadlisyah, University of Oslo
+*** Last updated: 30 October 2011
+***
+******************************************************************************************************
+
+
+
+(omod PS-BASIC-CLASSES is
+  
+pr RAT .
+pr NUMERICAL-DATA .
+pr STRING .
+pr FLOAT .
+pr DISCRETE-SWITCH-DATA .
+
+
+
+sort EDBType .
+ops no yes yes1 yes2 both  : -> EDBType [ctor] .
+
+sort ContDynType .
+ops component mesh : -> ContDynType [ctor] . 
+
+
+
+class PhysicalEntityStar | effort : Float, 
+                       effT : Float,
+                        effP : Float,
+                       edb : EDBType  .
+
+
+class PhysicalEntity .
+
+subclass PhysicalEntity < PhysicalEntityStar .
+
+
+class PhysicalEntityPC1 | contVar1 : Float  .
+
+subclass PhysicalEntityPC1 < PhysicalEntityStar .
+                       
+
+
+class PhysicalInteraction | flow : Float, entity1 : Oid, entity2 : Oid,
+                            floT1 : Float, floT2 : Float, floT3 : Float,
+                            edb : EDBType,
+                            contDyn : ContDynType .
+
+
+
+class FlowSource | entity : Oid, flow : Float, 
+                   floT1 : Float, floT2 : Float, floT3 : Float,
+                   edb : EDBType,
+                   contDyn : ContDynType .
+
+
+
+class SysMan | numMethod : NumMethod, stepSize : Float,
+               stepSizeInput : Float,
+               discreteSwitch : DSwitchType .
+
+
+
+*** PE dynamics
+
+
+op effortDyn : Object Float -> Float .
+
+op contVar1Dyn : Object Configuration -> Float .
+
+
+
+*** PI dynamics
+
+*** for PI, compo
+ 
+op flowDyn : Object Float Float -> Float .
+
+
+*** for FS, compo
+
+op flowDyn : Object Float -> Float .
+
+
+*** for prev version
+
+op flowDynX : Configuration -> Float .
+
+
+
+*** for PI & FS, mesh
+
+op flowDyn : Object Configuration -> Float .
+
+
+
+*** test
+op flowDynM : Object Configuration -> Float .
+
+
+---op flowDynFS : Configuration -> Float .
+
+
+
+*** FS dynamics
+
+op flowDynFS : Configuration -> Float .
+
+
+---op FlowSourceDyn : Configuration -> Float .
+
+
+op FlowAddSingleDyn : Configuration -> Float .
+
+op FlowAddCoupleDyn : Configuration -> Float .
+
+
+
+*** For data collector
+
+sort myOidList .
+subsort Oid < myOidList .
+
+op empOL : -> myOidList [ctor] .
+op __ : myOidList myOidList -> myOidList [ctor assoc id: empOL] .
+
+
+sort DataShownType .
+ops effort flow : -> DataShownType [ctor] .
+
+
+
+class DataCollector | source : myOidList, time : Float, result : String,
+                      dataShown : DataShownType  .
+
+
+
+endom)
+
+
+***###########################################################
+
+
+
+***###########################################################
+
+
+
+***###########################################################
+
+
+(omod NUMBER-DISPLAY is
+---protecting POSRAT-TIME-DOMAIN .
+
+pr RAT .
+inc CONVERSION . 
+
+--- Display a rational number with point notation N.M .
+--- usage: makeDotRat(RationalNumber, Precision) .
+op dfmPrec : Rat Nat -> String .
+op dfm : Rat -> String .
+op getDecimals : Rat Nat -> String .
+
+op prec : -> Nat .
+eq prec = 10 . 
+
+
+var R : Rat .
+var N : Nat .
+var NZ : NzNat .
+
+
+ceq dfmPrec( R, N ) = string(trunc(R), 10) + "." + getDecimals( abs(frac(R)), N)  
+    if (R >= 0) or (R <= -1) .
+
+ceq dfmPrec( R, N ) = "-" + string(trunc(R), 10) + "." + getDecimals( abs(frac(R)), N)  
+    if (R > -1) and (R < 0) .
+
+eq getDecimals( R, 0) = "" .
+eq getDecimals( R, NZ ) = string(trunc(R * 10), 10) + getDecimals(frac(R * 10), NZ - 1) .
+
+eq dfm(R) = dfmPrec(R, prec) .
+  
+
+endom)
+
+
+***###########################################################
+
+
+
+***###########################################################
+
+(omod EF-COMP-GENERAL is
+
+inc PS-BASIC-CLASSES .
+
+op computeFlow-IP : Configuration Configuration -> Configuration .
+
+
+vars PE1 PE2 PE PI SM FS FAS FAC : Oid .
+vars EFF1 EFF2 FLO EFF : Float .
+vars REST CONFIG  : Configuration .
+vars ET1 ET2 : Float .
+
+var CONFIGALL : Configuration .
+
+***===========================================================
+
+
+
+ceq computeFlow-IP(
+   < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : component > 
+   < PE1 : PhysicalEntityStar | effort : EFF1 > 
+   < PE2 : PhysicalEntityStar | effort : EFF2 > 
+   REST,
+   CONFIGALL) =
+
+   < PI : PhysicalInteraction | flow : FLO > 
+   computeFlow-IP(< PE1 : PhysicalEntityStar | > < PE2 : PhysicalEntityStar | > REST, CONFIGALL)
+
+   if FLO := flowDyn(< PI : PhysicalInteraction | >, EFF1, EFF2) .
+
+
+
+ceq computeFlow-IP(
+   < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : mesh >
+   < PE1 : PhysicalEntityStar | > 
+   < PE2 : PhysicalEntityStar | > 
+    REST, 
+   CONFIGALL) =
+
+   < PI : PhysicalInteraction | flow : FLO > 
+   computeFlow-IP(< PE1 : PhysicalEntityStar | > < PE2 : PhysicalEntityStar | > REST, CONFIGALL)
+
+   if FLO := flowDyn(< PI : PhysicalInteraction | >, CONFIGALL) .
+
+
+
+ceq computeFlow-IP(
+   < FS : FlowSource | entity : PE, contDyn : component > 
+   < PE : PhysicalEntityStar | effort : EFF > REST, 
+   CONFIGALL) =
+
+   < FS : FlowSource | flow : FLO > 
+   computeFlow-IP(< PE : PhysicalEntityStar | > REST, CONFIGALL)
+
+   if FLO := flowDyn(< FS : FlowSource | >, EFF) .
+
+
+ceq computeFlow-IP(
+   < FS : FlowSource | entity : PE, contDyn : mesh > 
+   < PE : PhysicalEntityStar | > REST, 
+   CONFIGALL) =
+
+   < FS : FlowSource | flow : FLO > 
+   computeFlow-IP(< PE : PhysicalEntityStar | > REST, CONFIGALL)
+
+   if FLO := flowDyn(< FS : FlowSource | >, CONFIGALL) .
+
+
+
+eq computeFlow-IP(CONFIG, CONFIGALL) = CONFIG [owise] .
+
+
+***===========================================================
+
+op computeFlow-P1 : Configuration -> Configuration .
+
+ceq computeFlow-P1(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : component > REST) =
+
+< PI : PhysicalInteraction | floT1 : FLO > 
+computeFlow-P1(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< PI : PhysicalInteraction | >, ET1, ET2 ) .
+
+
+
+ceq computeFlow-P1(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : mesh > REST) =
+
+< PI : PhysicalInteraction | floT1 : FLO > 
+computeFlow-P1(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< PI : PhysicalInteraction | > < PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST) .
+
+
+
+ceq computeFlow-P1(
+< FS : FlowSource | entity : PE, contDyn : component > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT1 : FLO > 
+computeFlow-P1(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< FS : FlowSource | >, EFF) .
+
+
+
+ceq computeFlow-P1(
+< FS : FlowSource | entity : PE, contDyn : mesh > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT1 : FLO > 
+computeFlow-P1(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< FS : FlowSource | > < PE : PhysicalEntity | > REST) .
+
+
+
+eq computeFlow-P1(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+
+op computeFlow-P2 : Configuration -> Configuration .
+
+ceq computeFlow-P2(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : component > REST) =
+
+< PI : PhysicalInteraction | floT2 : FLO > 
+computeFlow-P2(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< PI : PhysicalInteraction | >, ET1, ET2 ) .
+
+
+
+ceq computeFlow-P2(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : mesh > REST) =
+
+< PI : PhysicalInteraction | floT2 : FLO > 
+computeFlow-P2(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< PI : PhysicalInteraction | > < PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST) .
+
+
+
+ceq computeFlow-P2(
+< FS : FlowSource | entity : PE, contDyn : component > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT2 : FLO > 
+computeFlow-P2(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< FS : FlowSource | >, EFF) .
+
+
+
+ceq computeFlow-P2(
+< FS : FlowSource | entity : PE, contDyn : mesh > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT2 : FLO > 
+computeFlow-P2(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< FS : FlowSource | > < PE : PhysicalEntity | > REST) .
+
+
+
+eq computeFlow-P2(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+
+op computeFlow-P3 : Configuration -> Configuration .
+
+ceq computeFlow-P3(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : component > REST) =
+
+< PI : PhysicalInteraction | floT3 : FLO > 
+computeFlow-P3(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< PI : PhysicalInteraction | >, ET1, ET2 ) .
+
+
+ceq computeFlow-P3(
+< PE1 : PhysicalEntity | effT : ET1 > 
+< PE2 : PhysicalEntity | effT : ET2 > 
+< PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, contDyn : mesh > REST) =
+
+< PI : PhysicalInteraction | floT3 : FLO > 
+computeFlow-P3(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< PI : PhysicalInteraction | > < PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST) .
+
+
+
+ceq computeFlow-P3(
+< FS : FlowSource | entity : PE, contDyn : component > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT3 : FLO > 
+computeFlow-P3(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDyn(< FS : FlowSource | >, EFF) .
+
+
+
+ceq computeFlow-P3(
+< FS : FlowSource | entity : PE, contDyn : mesh > 
+< PE : PhysicalEntity | effort : EFF > REST) =
+
+< FS : FlowSource | floT3 : FLO > 
+computeFlow-P3(< PE : PhysicalEntity | > REST)
+
+if FLO := flowDynX(< FS : FlowSource | > < PE : PhysicalEntity | > REST) .
+
+
+
+eq computeFlow-P3(CONFIG) = CONFIG [owise] .
+
+
+
+
+
+
+
+*** Sum of Flows
+
+***===========================================================
+op sumFlows-IP : Oid Configuration -> Float .
+
+eq sumFlows-IP(PE, < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, flow : FLO > REST)
+   =
+   if (PE == PE1 or PE == PE2)
+   then ( if PE == PE1 then -1.0 * FLO + sumFlows-IP(PE, REST) else FLO + sumFlows-IP(PE, REST) fi )
+   else sumFlows-IP(PE, REST)
+   fi .
+
+
+eq sumFlows-IP(PE, < PE1 : PhysicalEntity | > REST)
+   =
+   sumFlows-IP(PE, REST) .
+
+
+
+eq sumFlows-IP(PE,
+   < FS : FlowSource | entity : PE1, flow : FLO > REST)
+   =
+   if (PE == PE1)
+      then FLO + sumFlows-IP(PE, REST)
+   else sumFlows-IP(PE, REST)
+   fi .
+
+
+
+
+eq sumFlows-IP(PE, CONFIG) = 0.0 [owise] .
+
+
+***===========================================================
+op sumFlows-P1 : Oid Configuration -> Float .
+
+eq sumFlows-P1(PE, < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, floT1 : FLO > REST)
+   =
+   if (PE == PE1 or PE == PE2)
+   then ( if PE == PE1 then -1.0 * FLO + sumFlows-P1(PE, REST) else FLO + sumFlows-P1(PE, REST) fi )
+   else sumFlows-P1(PE, REST)
+   fi .
+
+
+eq sumFlows-P1(PE, < PE1 : PhysicalEntity | > REST)
+   =
+   sumFlows-P1(PE, REST) .
+
+
+eq sumFlows-P1(PE,
+   < FS : FlowSource | entity : PE1, flow : FLO > REST)
+   =
+   if (PE == PE1)
+      then FLO + sumFlows-P1(PE, REST)
+   else sumFlows-P1(PE, REST)
+   fi .
+
+
+
+eq sumFlows-P1(PE, CONFIG) = 0.0 [owise] .
+
+
+***===========================================================
+op sumFlows-P2 : Oid Configuration -> Float .
+
+eq sumFlows-P2(PE, < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, floT2 : FLO > REST)
+   =
+   if (PE == PE1 or PE == PE2)
+   then ( if PE == PE1 then -1.0 * FLO + sumFlows-P2(PE, REST) else FLO + sumFlows-P2(PE, REST) fi )
+   else sumFlows-P2(PE, REST)
+   fi .
+
+
+eq sumFlows-P2(PE, < PE1 : PhysicalEntity | > REST)
+   =
+   sumFlows-P2(PE, REST) .
+
+
+eq sumFlows-P2(PE,
+   < FS : FlowSource | entity : PE1, flow : FLO > REST)
+   =
+   if (PE == PE1)
+      then FLO + sumFlows-P2(PE, REST)
+   else sumFlows-P2(PE, REST)
+   fi .
+
+
+
+eq sumFlows-P2(PE, CONFIG) = 0.0 [owise] .
+
+
+***===========================================================
+op sumFlows-P3 : Oid Configuration -> Float .
+
+eq sumFlows-P3(PE, < PI : PhysicalInteraction | entity1 : PE1, entity2 : PE2, floT3 : FLO > REST)
+   =
+   if (PE == PE1 or PE == PE2)
+   then ( if PE == PE1 then -1.0 * FLO + sumFlows-P3(PE, REST) else FLO + sumFlows-P3(PE, REST) fi )
+   else sumFlows-P3(PE, REST)
+   fi .
+
+
+eq sumFlows-P3(PE, < PE1 : PhysicalEntity | > REST)
+   =
+   sumFlows-P3(PE, REST) .
+
+
+eq sumFlows-P3(PE,
+   < FS : FlowSource | entity : PE1, flow : FLO > REST)
+   =
+   if (PE == PE1)
+      then FLO + sumFlows-P3(PE, REST)
+   else sumFlows-P3(PE, REST)
+   fi .
+
+
+
+eq sumFlows-P3(PE, CONFIG) = 0.0 [owise] .
+
+
+
+endom)
+
+
+
+***###########################################################
+
+(omod EF-COMP-EULER is 
+
+inc EF-COMP-GENERAL .
+inc NUMBER-DISPLAY .
+
+
+op computeEffort-FP : Configuration Configuration -> Configuration .
+
+op valEulerFinal :  Float Float Float -> Float .
+op compute-EF-Euler : Configuration  -> Configuration .
+
+op computeEffort-FP2 : Configuration -> Configuration .
+op compute-EF-Euler2 : Configuration  -> Configuration .
+
+
+vars FLO EFF EFF-NEW CV1 CV1-NEW : Float .
+var SS : Float .
+vars VAL DF : Float .
+vars PE  SM : Oid .
+vars REST CONFIG CONFIGALL : Configuration .
+
+
+
+
+***===========================================================
+*** Keep the previous value of EFFORT
+
+ceq computeEffort-FP(
+   < PE : PhysicalEntity | effort : EFF 
+   > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > 
+   REST, 
+   CONFIGALL) 
+   = 
+   < PE : PhysicalEntity | effort : EFF-NEW, effP : EFF >
+   computeEffort-FP(< SM : SysMan | > REST, CONFIGALL) 
+
+ if EFF-NEW := valEulerFinal(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, < PE : PhysicalEntity | > REST))) .
+
+
+
+ceq computeEffort-FP(
+   < PE : PhysicalEntityPC1 | effort : EFF, 
+                              contVar1 : CV1
+   > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > REST,
+   CONFIGALL) 
+   = 
+   < PE : PhysicalEntityPC1 | effort : EFF-NEW, effP : EFF,
+                              contVar1 : CV1-NEW >
+
+   computeEffort-FP(< SM : SysMan | > REST, CONFIGALL) 
+
+ if EFF-NEW := valEulerFinal(EFF, SS, effortDyn(< PE : PhysicalEntityPC1 | >, sumFlows-IP(PE, < PE : PhysicalEntityPC1 | > REST)))
+
+    /\ CV1-NEW := valEulerFinal(CV1, SS, contVar1Dyn(< PE : PhysicalEntityPC1 | >, CONFIGALL))  .
+
+
+
+eq computeEffort-FP(CONFIG, CONFIGALL) = CONFIG [owise] .
+
+
+***===========================================================
+*** Formula for Euler method
+
+eq valEulerFinal(VAL, SS, DF) = VAL + SS * DF .
+
+
+***===========================================================
+*** Formula for computing using Euler method.
+
+
+eq compute-EF-Euler(CONFIG) = 
+
+computeEffort-FP(computeFlow-IP(CONFIG, CONFIG), CONFIG) .
+
+
+
+***===========================================================
+
+
+****** Compute Flow used in DE-based adaptive step size
+
+*** To prepare the values of Flow vars in the configuration before
+*** computing step size.
+
+op computeFlow-Euler : Configuration -> Configuration .
+
+eq computeFlow-Euler(CONFIG) = computeFlow-IP(CONFIG, CONFIG) .
+
+
+
+
+endom)
+
+---(
+
+***###########################################################
+
+(omod EF-COMP-MIDPOINT is 
+
+inc EF-COMP-GENERAL .
+inc NUMBER-DISPLAY .
+
+op computeEffort-P1 : Configuration -> Configuration .
+op computeEffort-FP : Configuration -> Configuration .
+op compute-EF-MP : Configuration  -> Configuration .
+
+op valMPK2 : Float Float Float -> Float . 
+op valMPFinal :  Float Float Float -> Float .
+
+op computeEffort-FP2 : Configuration -> Configuration .
+op compute-EF-MP2 : Configuration  -> Configuration .
+
+vars FLO EFF EFF-NEW EFF-TMP : Float .
+var SS : Float .
+vars VAL DF : Float .
+vars PE  SM : Oid .
+vars REST CONFIG  : Configuration .
+
+
+
+***===========================================================
+ceq computeEffort-P1(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : mp, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effT : EFF-TMP > 
+   computeEffort-P1(< SM : SysMan | > REST) 
+
+
+if EFF-TMP := valMPK2(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST))) .
+
+
+eq computeEffort-P1(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+
+
+ceq computeEffort-FP(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : mp, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effort : EFF-NEW > 
+   computeEffort-FP(< SM : SysMan | > REST) 
+
+
+if EFF-NEW := valMPFinal(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-P1(PE, REST))) .
+
+
+
+eq computeEffort-FP(CONFIG) = CONFIG [owise] .
+
+
+
+***===========================================================
+
+ceq computeEffort-FP2(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : mp, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effort : EFF-NEW, effP : EFF > 
+   computeEffort-FP2(< SM : SysMan | > REST) 
+
+
+if EFF-NEW := valMPFinal(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-P1(PE, REST))) .
+
+
+
+eq computeEffort-FP2(CONFIG) = CONFIG [owise] .
+
+***===========================================================
+*** Formula for MP method
+
+
+eq valMPK2(VAL, SS, DF) = VAL + 0.5 * SS * DF .
+
+eq valMPFinal(VAL, SS, DF) = VAL + SS * DF .
+
+
+
+
+***===========================================================
+
+*** Formula for computing using MP method.
+
+eq compute-EF-MP(CONFIG) = 
+   computeEffort-FP(computeFlow-P1(
+   computeEffort-P1(computeFlow-IP(CONFIG)))) .
+
+
+eq compute-EF-MP2(CONFIG) = 
+   computeEffort-FP2(computeFlow-P1(
+   computeEffort-P1(computeFlow-IP(CONFIG)))) .
+
+
+endom)
+
+
+***###########################################################
+
+(omod EF-COMP-RUNGE-KUTTA-4TH is 
+
+inc EF-COMP-GENERAL .
+inc NUMBER-DISPLAY .
+pr CONVERSION .
+
+op computeEffort-P1 : Configuration -> Configuration .
+op computeEffort-P2 : Configuration -> Configuration .
+op computeEffort-P3 : Configuration -> Configuration .
+op computeEffort-FP : Configuration -> Configuration .
+
+op compute-EF-RK4 : Configuration  -> Configuration .
+
+op valRK4K2 : Float Float Float -> Float . 
+op valRK4K3 : Float Float Float -> Float .
+op valRK4K4 :  Float Float Float -> Float .
+op valRK4Final :  Float Float Float Float Float Float -> Float .
+
+
+op computeEffort-FP2 : Configuration -> Configuration .
+op compute-EF-RK42 : Configuration  -> Configuration .
+
+vars FLO EFF EFF-NEW EFF-TMP : Float .
+var SS : Float .
+vars VAL DF DF1 DF2 DF3 DF4 : Float .
+vars PE  SM : Oid .
+vars REST CONFIG  : Configuration .
+
+
+***===========================================================
+ceq computeEffort-P1(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : rk4, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effT : EFF-TMP > 
+   computeEffort-P1(< SM : SysMan | > REST) 
+
+  if EFF-TMP := valRK4K2(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST))) .
+
+
+
+eq computeEffort-P1(CONFIG) = CONFIG [owise] .
+
+
+
+***===========================================================
+ceq computeEffort-P2(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : rk4, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effT : EFF-TMP > 
+   computeEffort-P2(< SM : SysMan | > REST) 
+
+  if EFF-TMP := valRK4K3(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-P1(PE, REST))) .
+
+
+
+eq computeEffort-P2(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+ceq computeEffort-P3(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : rk4, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effT : EFF-TMP > 
+   computeEffort-P3(< SM : SysMan | > REST) 
+
+if EFF-TMP := valRK4K4(EFF, SS, effortDyn(< PE : PhysicalEntity | >, sumFlows-P2(PE, REST))) .
+
+
+
+eq computeEffort-P3(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+ceq computeEffort-FP(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : rk4, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effort : EFF-NEW > 
+   computeEffort-FP(< SM : SysMan | > REST) 
+
+  if EFF-NEW := valRK4Final(EFF, SS, 
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST)),
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P1(PE, REST)), 
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P2(PE, REST)),
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P3(PE, REST))) .
+
+
+
+eq computeEffort-FP(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+ceq computeEffort-FP2(
+   < PE : PhysicalEntity | effort : EFF > 
+   < SM : SysMan | numMethod : rk4, stepSize : SS > REST ) 
+   = 
+   < PE : PhysicalEntity | effort : EFF-NEW, effP : EFF > 
+   computeEffort-FP2(< SM : SysMan | > REST) 
+
+  if EFF-NEW := valRK4Final(EFF, SS, 
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST)),
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P1(PE, REST)), 
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P2(PE, REST)),
+                         effortDyn(< PE : PhysicalEntity | >, sumFlows-P3(PE, REST))) .
+
+
+
+eq computeEffort-FP2(CONFIG) = CONFIG [owise] .
+
+
+***===========================================================
+
+
+eq valRK4K2(VAL, SS, DF) = VAL + 0.5 * SS * DF .
+
+eq valRK4K3(VAL, SS, DF) = VAL + 0.5 * SS * DF .
+
+eq valRK4K4(VAL, SS, DF) = VAL + SS * DF .
+
+eq valRK4Final(VAL, SS, DF1, DF2, DF3, DF4) = 
+   VAL + float(1/6) * SS * DF1
+       + float(1/3) * SS * DF2
+       + float(1/3) * SS * DF3
+       + float(1/6) * SS * DF4 .
+
+
+***===========================================================
+*** Formula for computing using RK4 method.
+
+eq compute-EF-RK4(CONFIG) = 
+
+   computeEffort-FP(computeFlow-P3(
+   computeEffort-P3(computeFlow-P2(
+   computeEffort-P2(computeFlow-P1(
+   computeEffort-P1(computeFlow-IP(CONFIG)))))))) .
+
+
+eq compute-EF-RK42(CONFIG) = 
+
+   computeEffort-FP2(computeFlow-P3(
+   computeEffort-P3(computeFlow-P2(
+   computeEffort-P2(computeFlow-P1(
+   computeEffort-P1(computeFlow-IP(CONFIG)))))))) .
+
+
+endom)
+
+)
+
+***###########################################################
+
+
+
+
+(omod EF-COMPUTATION is 
+
+inc EF-COMP-EULER .
+
+---inc EF-COMP-MIDPOINT .
+---inc EF-COMP-RUNGE-KUTTA-4TH .
+
+
+endom)
+
+
+***###########################################################
+
+(omod STATE-INVARIANTS-CHECK is
+
+
+pr CONFIGURATION .
+
+---(
+---vars NEC NEC1 NEC2 : NEConfiguration .
+
+vars NEC NEC1 NEC2 : Configuration .
+
+op TimeCanAdvance : Configuration -> Bool .
+
+eq TimeCanAdvance(NEC1 NEC2) = TimeCanAdvance(NEC1) and TimeCanAdvance(NEC2) .
+eq TimeCanAdvance(NEC) = true [owise] .
+
+)
+endom)  
+
+
+
+
+***###########################################################
+
+*** to collect simulation data
+
+(omod DATA-COLLECTOR is
+
+pr PS-BASIC-CLASSES .
+pr CONFIGURATION .
+pr CONVERSION .
+pr NUMBER-DISPLAY .
+
+
+
+op fieldSeparator : -> String .
+op rowSeparator : -> String .
+op blank : -> String . 
+
+eq fieldSeparator = "," .
+eq rowSeparator = "\n" . ---C-q C-j 
+eq blank = "" .
+
+
+var ROWS : String .
+vars CURTIME STEPSIZE : Float .
+var OBJL : myOidList .
+vars E C : Oid .
+var L : myOidList .
+var PE : Oid .
+var TD : String .
+vars EFF FLO CV1 : Float .
+vars CONFIG REST : Configuration .
+
+var DAT : DataShownType .
+
+
+
+op collectData : String Configuration myOidList Float Float DataShownType -> String .
+
+eq collectData(ROWS, CONFIG, empOL, CURTIME, STEPSIZE, DAT) = ROWS .
+
+
+ceq collectData(ROWS, CONFIG, OBJL, CURTIME, STEPSIZE, DAT) = 
+
+   ROWS + dfm(rat(CURTIME)) 
+        + fieldSeparator + dfm(rat(STEPSIZE))  
+        + getAllValues(OBJL, CONFIG, CURTIME) + rowSeparator 
+
+   if DAT == effort .
+
+
+ceq collectData(ROWS, CONFIG, OBJL, CURTIME, STEPSIZE, DAT) = 
+
+   ROWS + dfm(rat(CURTIME)) 
+        + fieldSeparator + dfm(rat(STEPSIZE))  
+        + getAllValuesFlow(OBJL, CONFIG, CURTIME) + rowSeparator 
+
+   if DAT == flow .
+
+
+
+op getAllValues : myOidList Configuration Float -> String .
+
+
+eq getAllValues(E L, < E : PhysicalEntity | effort : EFF > REST, CURTIME) = 
+
+   fieldSeparator + dfm(rat((EFF))) 
+   + getAllValues(L, REST, CURTIME) .
+
+
+
+*** For PE with one additional cont.var
+
+eq getAllValues(E L, < E : PhysicalEntityPC1 | effort : EFF, contVar1 : CV1 > REST, CURTIME) = 
+
+   fieldSeparator + dfm(rat((EFF))) 
+   + fieldSeparator + dfm(rat((CV1))) 
+   + getAllValues(L, REST, CURTIME) .
+
+
+eq getAllValues(empOL, CONFIG, CURTIME) = blank .
+
+
+
+***
+
+op getAllValuesFlow : myOidList Configuration Float -> String .
+
+
+eq getAllValuesFlow(C L, < C : PhysicalInteraction | flow : FLO > REST, CURTIME) = 
+
+   fieldSeparator + dfm(rat((FLO))) 
+   + getAllValuesFlow(L, REST, CURTIME) .
+
+
+
+eq getAllValuesFlow(C L, < C : FlowSource | flow : FLO > REST, CURTIME) = 
+
+   fieldSeparator + dfm(rat((FLO))) 
+   + getAllValuesFlow(L, REST, CURTIME) .
+
+
+
+eq getAllValuesFlow(empOL, CONFIG, CURTIME) = blank .
+
+
+
+endom)
+
+
+
+
+
+
+***###########################################################
+
+*** Discrete-event-detection-based adaptive step size
+
+(omod DE-DETECT-ADAPTIVE-STEPSIZE is
+
+pr PS-BASIC-CLASSES .
+pr EF-COMP-GENERAL .
+pr EF-COMP-EULER .
+---pr CONFIGURATION .
+
+vars PE SM FS PI PE1 PE2 : Oid .
+var SS : Float .
+vars REST CONFIG : Configuration .
+vars EFF YN YN1 F EFF1 EFF2 : Float .
+var OBJ : Object .
+var EDB : EDBType .
+
+***===========================================================
+
+op dSwitchPoint : Object -> Float .
+op dSwitchPoint1 : Object -> Float .
+op dSwitchPoint2 : Object -> Float .
+
+
+***===========================================================
+
+op dSwitchOccurPE : Object -> Bool .
+op dSwitchOccurFS : Object Float -> Bool .
+op dSwitchOccurPI : Object Float -> Bool .
+op dSwitchOccurPIBoth : Object Float Float -> Bool .
+
+
+*** Basic definition for a single dSwitchOccur
+
+eq dSwitchOccurPE(OBJ) = false [owise] . 
+
+eq dSwitchOccurFS(OBJ, EFF) = false [owise] . 
+
+eq dSwitchOccurPI(OBJ, EFF1) = false [owise] . 
+
+eq dSwitchOccurPIBoth(OBJ, EFF1, EFF2) = false [owise] . 
+
+
+***===========================================================
+
+
+op dSwitchOccurPEAll : Configuration -> Bool .
+op dSwitchOccurFSAll : Configuration -> Bool .
+op dSwitchOccurPIAll : Configuration -> Bool .
+
+
+
+*** For Physical Entity
+
+eq dSwitchOccurPEAll(< PE : PhysicalEntity | edb : yes > REST) = 
+   
+   dSwitchOccurPE(< PE : PhysicalEntity | >) or dSwitchOccurPEAll(REST) .
+
+
+eq dSwitchOccurPEAll(CONFIG) = false [owise] .
+
+
+
+*** For Flow Source
+
+eq dSwitchOccurFSAll(< FS : FlowSource | edb : yes, entity : PE > 
+                     < PE : PhysicalEntity | effort : EFF > REST) = 
+   
+   dSwitchOccurFS(< FS : FlowSource | >, EFF) or dSwitchOccurFSAll(< PE : PhysicalEntity | > REST) .
+
+
+eq dSwitchOccurFSAll(CONFIG) = false [owise] .
+
+
+
+
+*** For Physical Interaction
+
+eq dSwitchOccurPIAll(< PI : PhysicalInteraction | edb : yes1, entity1 : PE1 > 
+                     < PE1 : PhysicalEntity | effort : EFF > REST) = 
+   
+   dSwitchOccurPI(< PI : PhysicalInteraction | >, EFF) or dSwitchOccurPIAll(< PE1 : PhysicalEntity | > REST) .
+
+
+
+eq dSwitchOccurPIAll(< PI : PhysicalInteraction | edb : yes2, entity2 : PE2 > 
+                     < PE2 : PhysicalEntity | effort : EFF > REST) = 
+   
+   dSwitchOccurPI(< PI : PhysicalInteraction | >, EFF) or dSwitchOccurPIAll(< PE2 : PhysicalEntity | > REST) .
+
+
+
+eq dSwitchOccurPIAll(< PI : PhysicalInteraction | edb : both, entity1 : PE1, entity2 : PE2 > 
+                     < PE1 : PhysicalEntity | effort : EFF1 > < PE2 : PhysicalEntity | effort : EFF2 > REST) = 
+   
+   dSwitchOccurPIBoth(< PI : PhysicalInteraction | >, EFF1, EFF2) or dSwitchOccurPIAll(< PE1 : PhysicalEntity | > < PE2 : PhysicalEntity | > REST) .
+
+
+
+eq dSwitchOccurPIAll(CONFIG) = false [owise] .
+
+
+
+
+
+***===========================================================
+
+---(
+
+op stepSizeDE : Configuration -> Float .
+
+
+eq stepSizeDE(
+   < PE : PhysicalEntity | cdb : true > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > REST ) 
+   = 
+
+   min(min(SS, stepSizeEuler(< PE : PhysicalEntity | > REST)), 
+       stepSizeDE(< SM : SysMan | > REST)) .
+
+
+eq stepSizeDE(
+   < SM : SysMan | stepSize : SS > 
+   CONFIG)
+   =
+   SS [owise]. 
+
+)
+
+***===========================================================
+
+---(
+
+op stepSizeEuler : Configuration -> Float .
+
+
+eq stepSizeEuler(< PE : PhysicalEntity | effort : EFF > REST) =
+
+   stepSizeEulerForm(EFF, 
+                     dSwitchPoint(< PE : PhysicalEntity | >), 
+                     effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST))) .
+
+)
+
+***===========================================================
+
+op stepSizeDE-PE : Configuration -> Float .
+
+
+eq stepSizeDE-PE(
+   < PE : PhysicalEntity | edb : yes > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > REST ) 
+   = 
+
+   min(min(SS, stepSizeEuler-PE(< PE : PhysicalEntity | > REST)), 
+       stepSizeDE-PE(< SM : SysMan | > REST)) .
+
+
+eq stepSizeDE-PE(
+   < SM : SysMan | stepSize : SS > 
+   CONFIG)
+   =
+   SS [owise]. 
+
+
+
+***===========================================================
+
+op stepSizeEuler-PE : Configuration -> Float .
+
+
+eq stepSizeEuler-PE(< PE : PhysicalEntity | effort : EFF > REST) =
+
+   stepSizeEulerForm(EFF, 
+                     dSwitchPoint(< PE : PhysicalEntity | >), 
+                     effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST))) .
+
+
+***===========================================================
+
+
+op stepSizeDE-FS : Configuration -> Float .
+
+
+eq stepSizeDE-FS(
+   < FS : FlowSource | edb : yes > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > REST ) 
+   = 
+
+   min(min(SS, stepSizeEuler-FS(< FS : FlowSource | > REST)), 
+       stepSizeDE-FS(< SM : SysMan | > REST)) .
+
+
+eq stepSizeDE-FS(
+   < SM : SysMan | stepSize : SS > 
+   CONFIG)
+   =
+   SS [owise]. 
+
+
+***===========================================================
+
+
+op stepSizeEuler-FS : Configuration -> Float .
+
+
+eq stepSizeEuler-FS(< FS : FlowSource | edb : yes, entity : PE > 
+                    < PE : PhysicalEntity | effort : EFF > 
+                    REST) =
+
+   stepSizeEulerForm(EFF, 
+                     dSwitchPoint(< FS : FlowSource | >), 
+                     effortDyn(< PE : PhysicalEntity | >, sumFlows-IP(PE, REST))) .
+
+
+
+***===========================================================
+
+
+
+op stepSizeDE-PI : Configuration -> Float .
+
+
+ceq stepSizeDE-PI(
+   < PI : PhysicalInteraction | edb : EDB > 
+   < SM : SysMan | numMethod : euler, stepSize : SS > REST ) 
+   = 
+
+   min(min(SS, stepSizeEuler-PI(< PI : PhysicalInteraction | > REST)), 
+       stepSizeDE-PI(< SM : SysMan | > REST)) 
+
+   if ((EDB == yes1) or (EDB == yes2) or (EDB == both)) .
+
+
+
+eq stepSizeDE-PI(
+   < SM : SysMan | stepSize : SS > 
+   CONFIG)
+   =
+   SS [owise]. 
+
+***===========================================================
+
+
+op stepSizeEuler-PI : Configuration -> Float .
+
+
+eq stepSizeEuler-PI(< PI : PhysicalInteraction | edb : yes1, entity1 : PE1 > 
+                   < PE1 : PhysicalEntity | effort : EFF1 > 
+                   REST) =
+
+   stepSizeEulerForm(EFF1, 
+                     dSwitchPoint(< PI : PhysicalInteraction | >), 
+                     effortDyn(< PE1 : PhysicalEntity | >, sumFlows-IP(PE1, REST))) .
+
+
+
+eq stepSizeEuler-PI(< PI : PhysicalInteraction | edb : yes2, entity2 : PE2 > 
+                   < PE2 : PhysicalEntity | effort : EFF2 > 
+                   REST) =
+
+   stepSizeEulerForm(EFF2, 
+                     dSwitchPoint(< PI : PhysicalInteraction | >), 
+                     effortDyn(< PE2 : PhysicalEntity | >, sumFlows-IP(PE2, REST))) .
+
+
+
+eq stepSizeEuler-PI(< PI : PhysicalInteraction | edb : both, entity1 : PE1, entity2 : PE2 > 
+                   < PE1 : PhysicalEntity | effort : EFF1 > 
+                   < PE2 : PhysicalEntity | effort : EFF2 > 
+                   REST) =
+
+   min(
+   stepSizeEulerForm(EFF1, 
+                     dSwitchPoint1(< PI : PhysicalInteraction | >), 
+                     effortDyn(< PE1 : PhysicalEntity | >, sumFlows-IP(PE1, REST))),
+   stepSizeEulerForm(EFF2, 
+                     dSwitchPoint2(< PI : PhysicalInteraction | >), 
+                     effortDyn(< PE2 : PhysicalEntity | >, sumFlows-IP(PE2, REST)))) .
+
+
+
+
+
+***===========================================================
+
+
+op stepSizeEulerForm : Float Float Float -> Float .
+
+eq stepSizeEulerForm(YN, YN1, F)  = (YN1 - YN) / F .
+
+
+
+***===========================================================
+
+endom)
+
+
+
+
+***###########################################################
+
+
+(tomod EF-EXECUTION is
+
+pr PS-BASIC-CLASSES .
+pr EF-COMPUTATION .
+pr POSRAT-TIME-DOMAIN .
+inc STATE-INVARIANTS-CHECK .
+inc DATA-COLLECTOR .
+
+
+pr DE-DETECT-ADAPTIVE-STEPSIZE .
+
+
+
+op computeEF : Configuration  -> Configuration .
+
+
+vars REST CONFIG  : Configuration .
+var SM : Oid . 
+var SS : Float .
+
+var SRC : myOidList .
+var TIME : Float .
+var RSLT : String .
+var DC : Oid .
+var SSCUR : Float .
+
+vars SSIN SSDE : Float .
+
+var DAT : DataShownType .
+
+
+***===========================================================
+
+*** For DE-detection-based adaptive step size
+
+vars SSDEPE SSDEFS SSDEPI : Float .
+
+
+
+***===========================================================
+
+op adaptiveStepSizeDE : Configuration -> Float .
+
+ceq adaptiveStepSizeDE(< SM : SysMan | numMethod : euler, stepSize : SS > REST ) = 
+
+   if (dSwitchOccurPEAll(compute-EF-Euler2(< SM : SysMan | > REST)) 
+       or dSwitchOccurFSAll(compute-EF-Euler2(< SM : SysMan | > REST))
+       or dSwitchOccurPIAll(compute-EF-Euler2(< SM : SysMan | > REST))) 
+
+   then min(min(SSDEPE, SSDEFS), SSDEPI) 
+   else SS 
+
+   fi 
+
+   if SSDEPE := stepSizeDE-PE(computeFlow-Euler(< SM : SysMan | > REST )) 
+      /\ SSDEFS := stepSizeDE-FS(computeFlow-Euler(< SM : SysMan | > REST )) 
+      /\ SSDEPI := stepSizeDE-PI(computeFlow-Euler(< SM : SysMan | > REST )) . 
+
+
+
+***===========================================================
+
+
+
+
+
+vars NEC NEC1 NEC2 : NEConfiguration .
+
+
+op TimeCanAdvance : Configuration -> Bool .
+
+
+eq TimeCanAdvance(NEC1 NEC2) = TimeCanAdvance(NEC1) and TimeCanAdvance(NEC2) .
+
+eq TimeCanAdvance(NEC) = true [owise] .
+
+
+
+op timeCanAdvance2 : Configuration -> Bool .
+
+
+eq timeCanAdvance2(NEC1 NEC2) = timeCanAdvance2(NEC1) and timeCanAdvance2(NEC2) .
+
+eq timeCanAdvance2(NEC) = true [owise] .
+
+
+
+
+eq computeEF(< SM : SysMan | numMethod : euler > REST) = 
+   compute-EF-Euler(< SM : SysMan | > REST) .
+
+***===========================================================
+
+op computeEFPlot : Configuration  -> Configuration .
+
+
+eq computeEFPlot(< DC : DataCollector | source : SRC, time : TIME, result : RSLT, dataShown : DAT > 
+                 < SM : SysMan | stepSize : SSCUR > REST) =   
+
+  < DC : DataCollector | result : collectData(RSLT, REST, SRC, TIME, SSCUR, DAT), time : (TIME + SSCUR) > 
+  computeEF(< SM : SysMan | > REST) .
+
+
+eq computeEFPlot(CONFIG) = computeEF(CONFIG) [owise] .
+
+
+
+
+***===========================================================
+
+*** For inserting/icluding user defined procedures in the execution
+*** of continuous behaviors.
+
+op computeBeforeEF : Configuration -> Configuration . 
+
+op computeAfterEF : Configuration -> Configuration . 
+
+
+eq computeBeforeEF(CONFIG) = CONFIG [owise] .
+
+eq computeAfterEF(CONFIG) = CONFIG [owise] .
+
+
+
+***===========================================================
+
+op timeCanAdvanceMult : Configuration -> Bool .
+
+
+eq timeCanAdvanceMult(CONFIG) = true [owise] .
+
+
+
+***===========================================================
+
+*** NEW TICK rule
+
+
+
+*** static step size
+
+crl [tick] : {< SM : SysMan | stepSize : SS, discreteSwitch : nonaccurate > REST} 
+              => 
+             {computeAfterEF(computeEFPlot(computeBeforeEF(< SM : SysMan | > REST)))} in time rat(SS)
+             
+   if TimeCanAdvance(< SM : SysMan | > REST) 
+      /\ timeCanAdvanceMult(< SM : SysMan | > REST) .
+
+
+
+*** DE-detection-based adaptive step size
+
+crl [tick] : {< SM : SysMan | stepSizeInput : SSIN, discreteSwitch : accurate > REST} 
+              => 
+            {computeAfterEF(computeEFPlot(computeBeforeEF(< SM : SysMan | > REST)))} in time rat(SSDE)
+             
+   if TimeCanAdvance(< SM : SysMan | > REST) 
+      /\ timeCanAdvanceMult(< SM : SysMan | > REST) 
+      /\ SSDE := adaptiveStepSizeDE(< SM : SysMan | stepSize : SSIN > REST).
+
+
+
+endtom)
+
+
+
+
+
+
+***###########################################################
+
+
+(omod HYBRID-LIB is 
+
+inc EF-COMPUTATION .
+inc STATE-INVARIANTS-CHECK .
+inc EF-EXECUTION .
+
+
+endom)
+
+
+
+***###########################################################
+
+
+
+
+****************************************************************************************************************
+
+eof
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
