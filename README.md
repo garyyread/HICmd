@@ -20,7 +20,7 @@
 		> HICmd\build\classes\hicmd\resources\real-time-maude.maude
 		
 	2. Set environment path to Maude installation folder
-		> Windows CMD: setx path "%PATH%;C:\EXAMPLE_PATH\MaudeFW\"
+		> Windows CMD: <tt>setx path "%PATH%;C:\EXAMPLE_PATH\MaudeFW\" /m</tt>
 		
 	3. Run HICmd!
 		> HICmd\dist\HICmd.jar
