@@ -19,8 +19,8 @@
 		> HICmd\build\classes\hicmd\resources\eflib-float.maude
 		> HICmd\build\classes\hicmd\resources\real-time-maude.maude
 		
-	2. Set environment path to Maude installation folder
-		> Windows CMD: <tt>setx path "%PATH%;C:\EXAMPLE_PATH\MaudeFW\" /m</tt>
+	2. Set environment path to Maude installation folder, for windows use cmd with:
+		> setx path "%PATH%;C:\EXAMPLE_PATH\MaudeFW\" /m
 		
 	3. Run HICmd!
 		> HICmd\dist\HICmd.jar
