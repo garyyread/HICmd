@@ -7,13 +7,44 @@ package hicmd.resultprocessor;
  */
 public class FindEarliestResult {
 
+    /**
+     *
+     */
     public String rewrites;
+
+    /**
+     *
+     */
     public String realTime;
+
+    /**
+     *
+     */
     public String numericalMethod;
+
+    /**
+     *
+     */
     public String stepsize;
+
+    /**
+     *
+     */
     public String dataShown;
+
+    /**
+     *
+     */
     public String[] source;
+
+    /**
+     *
+     */
     public String inTime;
+
+    /**
+     *
+     */
     public String[][] result;
 
     @Override

@@ -7,11 +7,34 @@ package hicmd.resultprocessor;
  */
 public class HybridSearchResult {
 
+    /**
+     *
+     */
     public String rewrites;
+
+    /**
+     *
+     */
     public String realTime;
+
+    /**
+     *
+     */
     public String numericalMethod;
+
+    /**
+     *
+     */
     public String dataShown;
+
+    /**
+     *
+     */
     public String[] source;
+
+    /**
+     *
+     */
     public String[][][] solutions;
 
     @Override

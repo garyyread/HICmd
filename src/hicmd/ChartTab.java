@@ -30,6 +30,10 @@ public class ChartTab extends JPanel {
     final NumberAxis yAxis;
     final LineChart<Number, Number> lineChart;
 
+    /**
+     *
+     * @param title
+     */
     public ChartTab(String title) {
         if (title.length() < 1) {
             this.title = "Title";
@@ -44,6 +48,9 @@ public class ChartTab extends JPanel {
         lineChart.setBackground(Background.EMPTY);
     }
 
+    /**
+     *
+     */
     public void init() {
         xAxis.setLabel(xLabel);
         yAxis.setLabel(yLabel);
@@ -59,6 +66,10 @@ public class ChartTab extends JPanel {
         add(jfxPanel, BorderLayout.CENTER);
     }
 
+    /**
+     *
+     * @param series
+     */
     public void addSeries(XYChart.Series series) {
         Platform.runLater(new Runnable() {
             @Override
@@ -68,6 +79,10 @@ public class ChartTab extends JPanel {
         });
     }
 
+    /**
+     *
+     * @param series
+     */
     public void removeSeries(XYChart.Series series) {
         Platform.runLater(new Runnable() {
             @Override
@@ -77,6 +92,10 @@ public class ChartTab extends JPanel {
         });
     }
 
+    /**
+     *
+     * @throws IOException
+     */
     public void saveView() throws IOException {
         JFileChooser fm = new JFileChooser();
         fm.setSelectedFile(new File(lineChart.getTitle() + ".png"));
@@ -88,6 +107,9 @@ public class ChartTab extends JPanel {
         };
     }
 
+    /**
+     *
+     */
     public void run() {
         Platform.runLater(new Runnable() {
             @Override

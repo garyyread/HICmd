@@ -79,7 +79,7 @@ class DocumentPanel extends JPanel {
         file = null;
         fileLabel = new JLabel();
         fileField = new JTextField();
-        fileChooser = new JFileChooser("C:\\Users\\Gary\\Google Drive\\Swansea University\\Year 3\\Dissertation\\Code");
+        fileChooser = new JFileChooser();
         openButton = new JButton();
         showButton = new JButton();
         documentLabel = new JLabel();

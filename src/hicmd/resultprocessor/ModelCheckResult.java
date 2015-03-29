@@ -7,10 +7,29 @@ package hicmd.resultprocessor;
  */
 public class ModelCheckResult {
 
+    /**
+     *
+     */
     public String rewrites;
+
+    /**
+     *
+     */
     public String realTime;
+
+    /**
+     *
+     */
     public String numericalMethod;
+
+    /**
+     *
+     */
     public String stepsize;
+
+    /**
+     *
+     */
     public String boolResult;
 
     public String toString() {

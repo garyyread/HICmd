@@ -70,6 +70,10 @@ public class OutputPanel extends JSplitPane {
     private Dimension LABEL_SIZE = new Dimension(80, 30);
     private Dimension BUTTON_SIZE = new Dimension(150, 30);
 
+    /**
+     *
+     * @param parent
+     */
     @SuppressWarnings("LeakingThisInConstructor")
     public OutputPanel(HICmd parent) {
         this.parent = parent;
@@ -146,6 +150,10 @@ public class OutputPanel extends JSplitPane {
         });
     }
 
+    /**
+     *
+     * @param processor
+     */
     public void addResultProcessor(ResultProcessor processor) {
 
         int i = 1;
@@ -217,9 +225,13 @@ public class OutputPanel extends JSplitPane {
             XYChart.Series series = new XYChart.Series();
             series.setName(name);
             for (String[] row : result) {
-                float x = Float.parseFloat(row[xpos]);
-                float y = Float.parseFloat(row[ypos]);
-                series.getData().add(new XYChart.Data(x, y));
+                try {
+                    float x = Float.parseFloat(row[xpos]);
+                    float y = Float.parseFloat(row[ypos]);
+                    series.getData().add(new XYChart.Data(x, y));
+                } catch (NumberFormatException ex) {
+                    Logger.getLogger(OutputPanel.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
 
             seriesList.add(series);

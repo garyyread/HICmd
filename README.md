@@ -31,6 +31,12 @@
 * Tidy and comment
 * UI Improvemnts
 
+# Known Issues
+* Unchecked types, compile with -Xlint for more details.
+* Weak processing of maude output, i.e., <b>not robust</b>.
+* Result process thread may never die, incorrect files can cause this.
+* On close of last result tab, new result tab chart lines are not drawn.
+
 # See also
 * <a href="http://folk.uio.no/mohamf/HI-Maude/">HI-Maude: The Rewriting-Logic-Based Tool for Modeling Interacting Hybrid Systems</a>
 

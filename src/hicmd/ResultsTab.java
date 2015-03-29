@@ -30,6 +30,10 @@ public class ResultsTab extends JPanel {
     private final int TAB_SIZE = 4;
     private final Font MONO_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
+    /**
+     *
+     * @param chart
+     */
     public ResultsTab(ChartTab chart) {
         this.chart = chart;
         outputArea = new JTextArea();
@@ -58,6 +62,10 @@ public class ResultsTab extends JPanel {
         add(seriesPanel, BorderLayout.NORTH);
     }
 
+    /**
+     *
+     * @param series
+     */
     public void addSeries(XYChart.Series series) {
         seriesList.add(series);
         chart.addSeries(series);
@@ -65,6 +73,10 @@ public class ResultsTab extends JPanel {
         addSeriesLabel(series);
     }
 
+    /**
+     *
+     * @param text
+     */
     public void setText(String text) {
         outputArea.setText(text);
     }

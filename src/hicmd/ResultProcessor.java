@@ -24,6 +24,11 @@ public class ResultProcessor {
     private ArrayList<FindEarliestResult> findEarliestResults;
     private ArrayList<ModelCheckResult> modelCheckResults;
 
+    /**
+     *
+     * @param result
+     * @throws IOException
+     */
     public ResultProcessor(String result) throws IOException {
         //Prosperity
         raw = result;
@@ -54,18 +59,34 @@ public class ResultProcessor {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<HybridRewriteResult> getHybridRewriteResults() {
         return hybridRewriteResults;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<HybridSearchResult> getHybridSearchResults() {
         return hybridSearchResults;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<FindEarliestResult> getFindEarliestResults() {
         return findEarliestResults;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<ModelCheckResult> getModelCheckResults() {
         return modelCheckResults;
     }
@@ -177,13 +198,8 @@ public class ResultProcessor {
     private String[][] getResult(String raw) {
         String[][] data;
         String startStr, endStr;
-        if (raw.contains("\",source")) {
-            startStr = ",result : \"";
-            endStr = "\"";
-        } else {
-            startStr = ",result : \"";
-            endStr = "\"";
-        }
+        startStr = "result : \"";
+        endStr = "\"";
         
         int start = raw.indexOf(startStr);
         raw = raw.substring(start + startStr.length());
@@ -247,7 +263,7 @@ public class ResultProcessor {
     }
 
     private String getInTime(String raw) {
-        String startStr = "),time : ";
+        String startStr = ",time : ";
         int start = raw.indexOf(startStr);
         raw = raw.substring(start + startStr.length());
 
