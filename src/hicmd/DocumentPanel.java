@@ -22,6 +22,7 @@ import javax.swing.JButton;
 import javax.swing.JTextArea;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -91,7 +92,7 @@ class DocumentPanel extends JPanel {
         JPanel top = new JPanel();
         JPanel bottom = new JPanel();
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        
+
         fileLabel.setText(FILE_LABEL);
 //        fileLabel.setFont(DEF_FONT);
 
@@ -125,7 +126,7 @@ class DocumentPanel extends JPanel {
         top.setLayout(gridbag);
         bottom.setLayout(gridbag);
 
-        gbc.insets = new Insets(2,2,2,2);
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.gridx = 0;
         gbc.weightx = 1;
         gbc.gridwidth = 1;
@@ -206,12 +207,12 @@ class DocumentPanel extends JPanel {
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
         buttonPanel.add(saveRunButton);
         bottom.add(buttonPanel, gbc);
-        
+
         split.setLeftComponent(top);
         split.setRightComponent(bottom);
         split.setDividerLocation(300);
         split.setOneTouchExpandable(true);
-        
+
         setLayout(new BorderLayout());
         add(split, BorderLayout.CENTER);
     }
@@ -228,11 +229,12 @@ class DocumentPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    if (file != null && file.exists()) {
-                        readFile();
-                    }
+                    file = new File(fileField.getText());
+                    readFile();
+                } catch (FileNotFoundException ex) {
+                    JOptionPane.showMessageDialog(getParent(), "File not found.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                 } catch (IOException ex) {
-                    Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(getParent(), "IO Error.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                 }
             }
         });
@@ -245,7 +247,11 @@ class DocumentPanel extends JPanel {
                         file = fileChooser.getSelectedFile();
                         fileField.setText(file.getAbsolutePath());
                         readFile();
+                    } catch (FileNotFoundException ex) {
+                        JOptionPane.showMessageDialog(getParent(), "File not found.", "HIcmd", JOptionPane.WARNING_MESSAGE);
+                        Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
                     } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(getParent(), "IO Error.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                         Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
@@ -260,6 +266,7 @@ class DocumentPanel extends JPanel {
                         saveAndRun();
                     }
                 } catch (FileNotFoundException ex) {
+                    JOptionPane.showMessageDialog(getParent(), "File not found.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                     Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -384,7 +391,7 @@ class ProgressThread extends Thread implements Runnable {
                 flip = !flip;
             } catch (InterruptedException | ArrayIndexOutOfBoundsException ex) {
                 //Log and terminate cleanly
-                Logger.getLogger(HICmd.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HICmd.class.getName()).log(Level.WARNING, null, ex);
                 terminate();
             }
         }
@@ -393,9 +400,9 @@ class ProgressThread extends Thread implements Runnable {
         tabs.setTitleAt(index, tabTitle);
     }
 }
-    
+
 class MyThread extends Thread implements Runnable {
-   
+
     private final File file;
     private final OutputPanel outPanel;
     private String result;
@@ -466,13 +473,14 @@ class MyThread extends Thread implements Runnable {
             try {
                 prog.join();
             } catch (InterruptedException ex) {
-                Logger.getLogger(HICmd.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HICmd.class.getName()).log(Level.WARNING, null, ex);
             }
 
             //Make output panel deal with it's output...
             outPanel.addResultProcessor(new ResultProcessor(result));
 
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(outPanel, "Error:\nProcess may have not run correctly.", "HIcmd", JOptionPane.WARNING_MESSAGE);
             Logger.getLogger(MyThread.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
