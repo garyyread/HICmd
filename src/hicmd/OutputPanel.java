@@ -29,6 +29,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
@@ -230,6 +231,7 @@ public class OutputPanel extends JSplitPane {
                     float y = Float.parseFloat(row[ypos]);
                     series.getData().add(new XYChart.Data(x, y));
                 } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(getParent(), "Excepion creating graph.\nGraph may not represent all data points.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                     Logger.getLogger(OutputPanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -285,6 +287,7 @@ public class OutputPanel extends JSplitPane {
                 try {
                     chart.saveView();
                 } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(getParent(), "Error saving chart view.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                     Logger.getLogger(OutputPanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -301,6 +304,7 @@ public class OutputPanel extends JSplitPane {
                     chart.setPreferredSize(new Dimension(Integer.parseInt(imgWidth.getText()), Integer.parseInt(imgHeight.getText())));
                     chart.revalidate();
                 } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(getParent(), "Error resizing chart.\nPlease use valid Integers.", "HIcmd", JOptionPane.WARNING_MESSAGE);
                     Logger.getLogger(OutputPanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }

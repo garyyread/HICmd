@@ -7,6 +7,8 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
@@ -92,8 +94,8 @@ public class HICmd extends JFrame {
             URL url = getClass().getResource(absolutePath);
             Image img = Toolkit.getDefaultToolkit().getImage(url);
             return new ImageIcon(img);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
         }
         return new ImageIcon();
     }

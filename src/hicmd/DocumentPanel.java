@@ -233,8 +233,10 @@ class DocumentPanel extends JPanel {
                     readFile();
                 } catch (FileNotFoundException ex) {
                     JOptionPane.showMessageDialog(getParent(), "File not found.", "HIcmd", JOptionPane.WARNING_MESSAGE);
+                    Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(getParent(), "IO Error.", "HIcmd", JOptionPane.WARNING_MESSAGE);
+                    Logger.getLogger(DocumentPanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
