@@ -59,6 +59,7 @@ public class ChartTab extends JPanel {
         lineChart.setCreateSymbols(false);
 
         Scene scene = new Scene(lineChart, 200, 200);
+        scene.getStylesheets().add("/hicmd/chartstyle_small.css");
 
         jfxPanel.setScene(scene);
 
