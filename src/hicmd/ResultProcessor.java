@@ -31,7 +31,7 @@ public class ResultProcessor {
      */
     public ResultProcessor(String result) throws IOException {
         //Prosperity
-        raw = result;
+        raw = result;   
 
         //Remove specific white space's
         result = result.replace('\n', ' ').replace('\t', ' ').replaceAll("( )+", " ");
