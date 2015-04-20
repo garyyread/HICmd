@@ -24,11 +24,6 @@ public class ResultProcessor {
     private ArrayList<FindEarliestResult> findEarliestResults;
     private ArrayList<ModelCheckResult> modelCheckResults;
 
-    /**
-     *
-     * @param result
-     * @throws IOException
-     */
     public ResultProcessor(String result) throws IOException {
         //Prosperity
         raw = result;   
@@ -59,34 +54,18 @@ public class ResultProcessor {
         }
     }
 
-    /**
-     *
-     * @return
-     */
     public ArrayList<HybridRewriteResult> getHybridRewriteResults() {
         return hybridRewriteResults;
     }
 
-    /**
-     *
-     * @return
-     */
     public ArrayList<HybridSearchResult> getHybridSearchResults() {
         return hybridSearchResults;
     }
 
-    /**
-     *
-     * @return
-     */
     public ArrayList<FindEarliestResult> getFindEarliestResults() {
         return findEarliestResults;
     }
 
-    /**
-     *
-     * @return
-     */
     public ArrayList<ModelCheckResult> getModelCheckResults() {
         return modelCheckResults;
     }
