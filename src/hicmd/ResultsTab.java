@@ -4,11 +4,15 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import javafx.scene.chart.XYChart;
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -26,8 +30,11 @@ public class ResultsTab extends JPanel {
     private JScrollPane scrollpane;
     private JPanel seriesPanel;
     private final JTextArea outputArea;
+    private final JButton copyButton;
+    private String result;
 
     private final int TAB_SIZE = 4;
+    private final String COPY_BUTTON = "Copy Result";
     private final Font MONO_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
     /**
@@ -39,6 +46,8 @@ public class ResultsTab extends JPanel {
         outputArea = new JTextArea();
         scrollpane = new JScrollPane();
         seriesList = new ArrayList<>();
+        copyButton = new JButton(COPY_BUTTON);
+        result = "";
         seriesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
         init();
@@ -56,10 +65,30 @@ public class ResultsTab extends JPanel {
                 BorderFactory.createTitledBorder("Data series"),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         
+        copyButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //copy to clipboard, use with excel etc...
+                Toolkit toolkit = Toolkit.getDefaultToolkit();
+                Clipboard clipboard = toolkit.getSystemClipboard();
+                StringSelection strSel = new StringSelection(result);
+                clipboard.setContents(strSel, null);
+            }
+        });
+        
         setLayout(new BorderLayout(5, 5));
         setMinimumSize(new Dimension(300, getMinimumSize().height));
         add(scrollpane, BorderLayout.CENTER);
         add(seriesPanel, BorderLayout.NORTH);
+        add(copyButton, BorderLayout.SOUTH);
+    }
+    
+    /**
+     * Set result string, this is copied to the clipboard.
+     * @param result Formatted result if set, otherwise empty String.
+     */
+    public void setResult(String result) {
+        this.result = result;
     }
 
     /**

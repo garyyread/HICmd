@@ -151,6 +151,20 @@ public class OutputPanel extends JSplitPane {
         });
     }
 
+    private String resultArrayToString(String[][] resultArray) {
+        String res = "";
+        for (String[] row : resultArray) {
+            res += "\t";
+
+            for (String d : row) {
+                res += d + "\t";
+            }
+
+            res += "\n";
+        }
+        return res;
+    }
+    
     /**
      *
      * @param processor
@@ -166,6 +180,7 @@ public class OutputPanel extends JSplitPane {
             for (XYChart.Series series : convertResultToSeriesList(res.source, res.result)) {
                 results.addSeries(series);
             }
+            results.setResult(resultArrayToString(res.result));
             results.setText(res.toString());
 
             tabs.add(i + " hrew Result", results);
@@ -197,6 +212,7 @@ public class OutputPanel extends JSplitPane {
             for (XYChart.Series series : convertResultToSeriesList(res.source, res.result)) {
                 results.addSeries(series);
             }
+            results.setResult(resultArrayToString(res.result));
             results.setText(res.toString());
 
             tabs.add(i + " hfind Result", results);
